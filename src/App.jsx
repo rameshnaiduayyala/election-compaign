@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, Users, UserCheck, Printer } from 'lucide-react'
+import { supabase } from './lib/supabase'
+import { getDeviceId } from './utils/deviceBinding'
 
 // Modular Components
 import Sidebar from './components/layout/Sidebar'
@@ -55,6 +57,43 @@ export default function App() {
     sessionStorage.removeItem('election_user_session')
     navigate('/login')
   }
+
+  // Active Single-Device Verification:
+  // If an Admin resets device binding, or if credentials were transferred to another machine,
+  // revoke session immediately.
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    const currentDeviceId = getDeviceId()
+
+    // 1. Local hardware check
+    if (session.user.bound_device_id && session.user.bound_device_id !== currentDeviceId) {
+      handleSignOut()
+      return
+    }
+
+    // 2. Live Supabase database check
+    async function verifyDeviceIntegrity() {
+      try {
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('bound_device_id, is_active')
+          .eq('id', session.user.id)
+          .maybeSingle()
+
+        if (error || !user) return
+        
+        // Deactivated user or device unbound by Admin
+        if (!user.is_active || (user.bound_device_id && user.bound_device_id !== currentDeviceId)) {
+          handleSignOut()
+        }
+      } catch (err) {
+        console.warn('Device verification check error:', err)
+      }
+    }
+
+    verifyDeviceIntegrity()
+  }, [session])
 
   const currentUserName = session?.user?.full_name || session?.user?.username || 'User'
   const currentUserRole = String(session?.user?.role || 'user').toLowerCase()

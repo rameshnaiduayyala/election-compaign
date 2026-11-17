@@ -4,8 +4,9 @@ import { supabase } from '../../lib/supabase'
 import {
   User, Lock, Eye, EyeOff, LogIn,
   AlertCircle, Loader2, ShieldCheck,
-  ArrowRight, Fingerprint
+  ArrowRight, Fingerprint, ShieldAlert, Smartphone
 } from 'lucide-react'
+import { getDeviceId, getDeviceName } from '../../utils/deviceBinding'
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('')
@@ -13,6 +14,7 @@ export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [deviceBlockedInfo, setDeviceBlockedInfo] = useState(null)
 
   async function submit(e) {
     e.preventDefault()
@@ -23,11 +25,57 @@ export default function Login({ onLogin }) {
 
     setBusy(true)
     setError('')
+    setDeviceBlockedInfo(null)
 
     try {
       const trimmed = username.trim()
+      const currentDeviceId = getDeviceId()
+      const currentDeviceName = getDeviceName()
 
-      const { data, error: queryError } = await supabase
+      // 1. Try secure server-side RPC validation first
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('authenticate_and_validate_device', {
+        p_username: trimmed,
+        p_password: password,
+        p_device_id: currentDeviceId,
+        p_device_name: currentDeviceName
+      })
+
+      // If server RPC executed successfully
+      if (!rpcError && rpcResult) {
+        if (!rpcResult.success) {
+          if (rpcResult.error === 'DEVICE_BLOCKED') {
+            setDeviceBlockedInfo({
+              boundDeviceName: rpcResult.bound_device_name,
+              boundDeviceAt: rpcResult.bound_device_at
+            })
+            setError(rpcResult.message || 'Access blocked: Account is bound to another device.')
+          } else {
+            setError(rpcResult.message || 'Invalid username or password.')
+          }
+          setBusy(false)
+          return
+        }
+
+        // Login succeeded via RPC!
+        const userData = rpcResult.user
+        onLogin({
+          user: {
+            id: userData.id,
+            username: userData.username,
+            full_name: userData.full_name,
+            email: userData.email,
+            role: userData.role,
+            ward_number: userData.ward_number,
+            phone: userData.phone,
+            bound_device_id: currentDeviceId,
+            bound_device_name: currentDeviceName
+          }
+        })
+        return
+      }
+
+      // 2. Direct Supabase Query & Validation (Graceful fallback if RPC not installed yet)
+      const { data: user, error: queryError } = await supabase
         .from('users')
         .select('*')
         .or(`username.eq.${trimmed},email.eq.${trimmed}`)
@@ -41,21 +89,47 @@ export default function Login({ onLogin }) {
         return
       }
 
-      if (!data) {
+      if (!user) {
         setError('Invalid username or password. Please check your credentials.')
         setBusy(false)
         return
       }
 
+      // Check device binding
+      if (!user.bound_device_id) {
+        // First login on this account! Automatically bind this device permanently
+        try {
+          await supabase.from('users').update({
+            bound_device_id: currentDeviceId,
+            bound_device_name: currentDeviceName,
+            bound_device_at: new Date().toISOString()
+          }).eq('id', user.id)
+        } catch (e) {
+          console.warn('Could not update bound_device_id:', e)
+        }
+      } else if (user.bound_device_id !== currentDeviceId) {
+        // Block other devices!
+        setDeviceBlockedInfo({
+          boundDeviceName: user.bound_device_name,
+          boundDeviceAt: user.bound_device_at
+        })
+        setError(`Access Denied: This account is permanently registered to another device (${user.bound_device_name || 'Registered Device'}). Contact an Administrator to reset your device binding.`)
+        setBusy(false)
+        return
+      }
+
+      // Device matches or was newly bound: allow login!
       onLogin({
         user: {
-          id: data.id,
-          username: data.username,
-          full_name: data.full_name,
-          email: data.email,
-          role: data.role,
-          ward_number: data.ward_number,
-          phone: data.phone
+          id: user.id,
+          username: user.username,
+          full_name: user.full_name,
+          email: user.email,
+          role: user.role,
+          ward_number: user.ward_number,
+          phone: user.phone,
+          bound_device_id: currentDeviceId,
+          bound_device_name: currentDeviceName
         }
       })
     } catch (err) {
@@ -184,8 +258,28 @@ export default function Login({ onLogin }) {
             </div>
           </div>
 
+          {/* Device Binding Blocked Alert */}
+          {deviceBlockedInfo && (
+            <div className="p-4 bg-red-50 border-2 border-red-300 rounded-2xl text-xs space-y-2 text-left animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 font-bold text-red-700 text-sm">
+                <ShieldAlert size={18} className="shrink-0 text-red-600" />
+                <span>Device Binding Protection</span>
+              </div>
+              <p className="text-slate-700 leading-snug m-0">
+                This account is permanently bound to another registered device:
+              </p>
+              <div className="p-2.5 bg-white border border-red-200 rounded-xl font-mono text-[11px] text-red-900 font-bold flex items-center gap-2 shadow-2xs">
+                <Smartphone size={15} className="shrink-0 text-red-600" />
+                <span className="truncate">{deviceBlockedInfo.boundDeviceName || 'Registered Device'}</span>
+              </div>
+              <p className="text-slate-500 text-[10px] leading-tight m-0">
+                🔒 Credentials cannot be used on multiple devices. All other devices remain blocked even when the original device is logged out. Please contact an Administrator to reset your device.
+              </p>
+            </div>
+          )}
+
           {/* Error */}
-          {error && (
+          {error && !deviceBlockedInfo && (
             <div className="p-3.5 bg-red-50 border border-red-200
               rounded-xl text-red-600 text-xs
               flex items-start gap-2">

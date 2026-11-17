@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   phone text,
   ward_number text DEFAULT '2',
   is_active boolean NOT NULL DEFAULT true,
+  bound_device_id text,
+  bound_device_name text,
+  bound_device_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

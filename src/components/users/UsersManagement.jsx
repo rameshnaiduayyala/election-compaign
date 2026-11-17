@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Plus, Edit3, Trash2, Search, X, Shield } from 'lucide-react'
+import { Plus, Edit3, Trash2, Search, X, Shield, Smartphone, RotateCcw, ShieldAlert, CheckCircle2 } from 'lucide-react'
 
 export default function UsersManagement({ setNotice, currentUserId }) {
   const [users, setUsers] = useState([])
@@ -156,6 +156,46 @@ export default function UsersManagement({ setNotice, currentUserId }) {
     }
   }
 
+  // Admin-Only Reset Device Binding
+  async function handleResetDevice(user) {
+    const confirmMsg = `Are you sure you want to reset device binding for '${user.username}' (${user.full_name})?\n\n` +
+      `Currently Registered Device: ${user.bound_device_name || 'Registered Device'}\n\n` +
+      `Resetting will allow the user to register and bind a new device on their next login.`
+    
+    if (!window.confirm(confirmMsg)) return
+
+    try {
+      // 1. Try server RPC
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('reset_user_device_binding', {
+        p_user_id: user.id
+      })
+
+      if (!rpcError && rpcResult?.success) {
+        setNotice(`Device binding for '${user.username}' successfully reset.`)
+        loadUsers()
+        return
+      }
+
+      // 2. Direct Supabase update fallback
+      const { error } = await supabase
+        .from('users')
+        .update({
+          bound_device_id: null,
+          bound_device_name: null,
+          bound_device_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      setNotice(`Device binding for '${user.username}' has been successfully reset! They can now log in and bind a new device.`)
+      loadUsers()
+    } catch (err) {
+      setNotice(`Reset device error: ${err.message}`)
+    }
+  }
+
   const roleBadge = (role) => {
     switch (role) {
       case 'admin':
@@ -228,6 +268,17 @@ export default function UsersManagement({ setNotice, currentUserId }) {
             <span className="text-slate-600">Strictly read-only access</span>
           </div>
         </div>
+
+        {/* Permanent Single-Device Binding Security Notice */}
+        <div className="mt-3 p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-start gap-2.5 text-slate-700">
+          <Smartphone size={16} className="text-blue-600 shrink-0 mt-0.5" />
+          <div className="space-y-0.5 text-[11px] leading-snug">
+            <span className="font-bold text-blue-900 block">Permanent Single-Device Binding Active:</span>
+            <span>
+              Each account permanently binds to the first device used for successful login. Unlimited login & logout sessions are permitted on that same device. All other devices are strictly blocked even when logged out. Click <b>Reset Device</b> if a field agent or worker loses or changes their phone.
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Users Table */}
@@ -248,6 +299,7 @@ export default function UsersManagement({ setNotice, currentUserId }) {
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Username</th>
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Full Name</th>
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Role & Permissions</th>
+                <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Registered Device</th>
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Ward</th>
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Phone</th>
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Password</th>
@@ -257,15 +309,37 @@ export default function UsersManagement({ setNotice, currentUserId }) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan="8" className="text-center py-12 text-slate-400 font-medium">Loading accounts from Supabase…</td></tr>
+                <tr><td colSpan="9" className="text-center py-12 text-slate-400 font-medium">Loading accounts from Supabase…</td></tr>
               ) : filteredUsers.length === 0 ? (
-                <tr><td colSpan="8" className="text-center py-12 text-slate-400 font-medium">No users found.</td></tr>
+                <tr><td colSpan="9" className="text-center py-12 text-slate-400 font-medium">No users found.</td></tr>
               ) : (
                 filteredUsers.map(u => (
                   <tr key={u.id} className="hover:bg-slate-50/70 transition">
                     <td className="px-4 py-3 font-mono font-bold text-slate-900">{u.username}</td>
                     <td className="px-4 py-3 font-bold text-slate-800">{u.full_name}</td>
                     <td className="px-4 py-3">{roleBadge(u.role)}</td>
+                    <td className="px-4 py-3">
+                      {u.bound_device_id ? (
+                        <div className="flex flex-col gap-0.5 max-w-[190px]">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs">
+                            <Smartphone size={11} className="text-blue-600 shrink-0" />
+                            <span className="truncate" title={u.bound_device_name || 'Registered Device'}>
+                              {u.bound_device_name || 'Registered Device'}
+                            </span>
+                          </span>
+                          {u.bound_device_at && (
+                            <span className="text-[9px] text-slate-400 font-medium">
+                              Bound: {new Date(u.bound_device_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                          <ShieldAlert size={11} className="text-amber-500 shrink-0" />
+                          <span>Unbound (1st login)</span>
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-600">Ward {u.ward_number || '2'}</td>
                     <td className="px-4 py-3 text-slate-600">{u.phone || '—'}</td>
                     <td className="px-4 py-3 font-mono text-slate-400">{u.password}</td>
@@ -289,6 +363,16 @@ export default function UsersManagement({ setNotice, currentUserId }) {
                         >
                           <Edit3 size={13} /> Edit
                         </button>
+                        {u.bound_device_id && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetDevice(u)}
+                            className="px-2.5 py-1 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 font-semibold text-xs rounded-lg shadow-2xs transition inline-flex items-center gap-1"
+                            title="Reset device binding (allow user to bind a new device)"
+                          >
+                            <RotateCcw size={12} /> Reset Device
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleDelete(u)}
@@ -408,6 +492,30 @@ export default function UsersManagement({ setNotice, currentUserId }) {
                     </select>
                   </div>
                 </div>
+
+                {editingUser && editingUser.bound_device_id && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-blue-900 block flex items-center gap-1.5">
+                        <Smartphone size={14} className="text-blue-600" />
+                        <span>Registered Device Bound</span>
+                      </span>
+                      <span className="text-blue-700 text-[11px] font-mono block mt-0.5">
+                        {editingUser.bound_device_name || 'Bound Device'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleResetDevice(editingUser)
+                        setModalOpen(false)
+                      }}
+                      className="px-2.5 py-1.5 bg-white border border-amber-300 hover:bg-amber-50 text-amber-900 font-bold text-xs rounded-lg shadow-2xs transition inline-flex items-center gap-1"
+                    >
+                      <RotateCcw size={12} /> Reset Device
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
