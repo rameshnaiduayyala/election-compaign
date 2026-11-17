@@ -30,8 +30,8 @@ export default function Sidebar({
                     className="w-10 h-10 rounded-full object-cover shadow-md border-2 border-blue-500/40"
                   />
                   <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400 block">WARD 2 · KADIYAPULANKA</span>
-                    <b className="text-sm font-bold text-white block">Election Desk</b>
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400 block">WARD 2 · VENKAYAMMAPETA</span>
+                    <b className="text-sm font-bold text-white block">Akula Ajay</b>
                   </div>
                 </div>
                 <button 

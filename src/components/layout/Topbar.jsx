@@ -33,9 +33,14 @@ export default function Topbar({
         >
           <Menu size={20} />
         </button>
+        <img 
+          src="/Ajay-round.png" 
+          alt="Akula Ajay" 
+          className="md:hidden w-8 h-8 rounded-full object-cover border border-blue-500/30 shrink-0 shadow-xs"
+        />
         <div className="min-w-0">
           <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-blue-600 block leading-none mb-0.5 sm:mb-1 truncate">
-            WARD 2 · KADIYAPULANKA
+            WARD 2 · AKULA AJAY
           </span>
           <h1 className="text-sm sm:text-base md:text-xl font-bold text-slate-900 leading-tight m-0 truncate">
             {pageTitle}
