@@ -17,7 +17,7 @@ export default defineConfig({
       includeAssets: [],
       manifest: {
         name: 'Venkayammapeta Ward 2 Election Desk', 
-        short_name: 'Ward2Desk', 
+        short_name: 'Akula Ajay', 
         description: 'Voter roll, canvassing slips, party analytics, and booth field operations',
         theme_color: '#1e40af', 
         background_color: '#0f172a', 
