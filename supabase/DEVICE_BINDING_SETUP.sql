@@ -117,3 +117,12 @@ $$;
 -- Grant execution to public / anon role
 GRANT EXECUTE ON FUNCTION public.authenticate_and_validate_device(text, text, text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reset_user_device_binding(uuid) TO anon, authenticated;
+
+-- 5. Seed or Update Default Super Admin Account
+INSERT INTO public.users (username, email, password, full_name, role, ward_number, is_active)
+VALUES
+  ('superadmin', 'superadmin@election.com', 'superadmin123', 'Super Administrator', 'super_admin', '2', true)
+ON CONFLICT (username) DO UPDATE SET
+  password = EXCLUDED.password,
+  full_name = EXCLUDED.full_name,
+  role = 'super_admin';

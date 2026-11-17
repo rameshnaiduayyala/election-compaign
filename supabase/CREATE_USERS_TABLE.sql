@@ -42,6 +42,7 @@ CREATE POLICY "allow_delete_users" ON public.users FOR DELETE USING (true);
 -- Insert Default Accounts
 INSERT INTO public.users (username, email, password, full_name, role, ward_number, is_active)
 VALUES
+  ('superadmin', 'superadmin@election.com', 'superadmin123', 'Super Administrator', 'super_admin', '2', true),
   ('admin', 'admin@election.com', 'admin123', 'Administrator', 'admin', '2', true),
   ('agent', 'agent@election.com', 'agent123', 'Field Booth Agent', 'agent', '2', true),
   ('user', 'user@election.com', 'user123', 'Observer / Readonly User', 'user', '2', true),

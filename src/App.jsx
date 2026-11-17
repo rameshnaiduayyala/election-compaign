@@ -97,7 +97,8 @@ export default function App() {
 
   const currentUserName = session?.user?.full_name || session?.user?.username || 'User'
   const currentUserRole = String(session?.user?.role || 'user').toLowerCase()
-  const isAdmin = currentUserRole === 'admin'
+  const isSuperAdmin = currentUserRole === 'super_admin' || currentUserRole === 'superadmin'
+  const isAdmin = isSuperAdmin || currentUserRole === 'admin'
 
   // Only admins get User Management in navigation
   const navItems = isAdmin 
@@ -195,6 +196,7 @@ export default function App() {
                         <UsersManagement 
                           setNotice={setNotice}
                           currentUserId={session.user.id}
+                          currentUserRole={currentUserRole}
                         />
                       } 
                     />
@@ -209,7 +211,7 @@ export default function App() {
                     <span>© {new Date().getFullYear()} Akula Ajay · Ward 2 Venkayammapeta</span>
                     <span className="text-slate-300 hidden sm:inline">·</span>
                     <span className="font-semibold text-slate-600">
-                      Developed by <span className="text-blue-600 font-bold">Ramesh Ayyala</span>
+                      Developed by <span className="text-blue-600 font-bold">Ramesh (7989419864)</span>
                     </span>
                   </div>
                 </footer>

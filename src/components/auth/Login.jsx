@@ -273,7 +273,7 @@ export default function Login({ onLogin }) {
                 <span className="truncate">{deviceBlockedInfo.boundDeviceName || 'Registered Device'}</span>
               </div>
               <p className="text-slate-500 text-[10px] leading-tight m-0">
-                🔒 Credentials cannot be used on multiple devices. All other devices remain blocked even when the original device is logged out. Please contact an Administrator to reset your device.
+                🔒 Credentials cannot be used on multiple devices. All other devices remain blocked even when the original device is logged out. Please contact Ramesh(7989419864) to reset your device.
               </p>
             </div>
           )}
