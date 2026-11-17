@@ -1,12 +1,14 @@
 import { Link, NavLink } from 'react-router-dom'
-import { LogOut, X } from 'lucide-react'
+import { LogOut, X, Smartphone } from 'lucide-react'
 
 export default function Sidebar({ 
   nav, 
   userEmail, 
   onSignOut,
   mobileOpen = false,
-  onCloseMobile
+  onCloseMobile,
+  onInstallApp,
+  isInstalled = false
 }) {
   return (
     <>
@@ -63,6 +65,15 @@ export default function Sidebar({
             </div>
 
             <div className="pt-4 border-t border-slate-800">
+              {!isInstalled && (
+                <button
+                  type="button"
+                  onClick={() => { if (onCloseMobile) onCloseMobile(); onInstallApp() }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-md shadow-blue-500/25 mb-3"
+                >
+                  <Smartphone size={16} /> 📲 Install Mobile App
+                </button>
+              )}
               <div className="text-[11px] text-slate-400 mb-3 truncate">
                 User: <b className="text-slate-200">{userEmail}</b>
               </div>

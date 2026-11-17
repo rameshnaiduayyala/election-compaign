@@ -16,14 +16,32 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: [],
       manifest: {
-        name: 'Election Desk Management', 
-        short_name: 'ElectionDesk', 
-        description: 'Voter roll, party analytics, and booth field operations',
-        theme_color: '#0f172a', 
-        background_color: '#f8fafc', 
+        name: 'Venkayammapeta Ward 2 Election Desk', 
+        short_name: 'Ward2Desk', 
+        description: 'Voter roll, canvassing slips, party analytics, and booth field operations',
+        theme_color: '#1e40af', 
+        background_color: '#0f172a', 
         display: 'standalone', 
+        orientation: 'portrait',
         start_url: '/',
-        icons: []
+        icons: [
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
       },
       workbox: { navigateFallbackDenylist: [/^\/rest\//, /^\/auth\//] }
     })

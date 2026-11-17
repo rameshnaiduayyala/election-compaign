@@ -1,11 +1,13 @@
-import { Menu, LogOut } from 'lucide-react'
+import { Menu, LogOut, Smartphone } from 'lucide-react'
 
 export default function Topbar({ 
   pageTitle, 
   currentUser = 'User', 
   userRole = 'user',
   onOpenMobileMenu, 
-  onSignOut 
+  onSignOut,
+  onInstallApp,
+  isInstalled = false
 }) {
   const getRoleBadge = (role) => {
     switch (String(role).toLowerCase()) {
@@ -42,6 +44,19 @@ export default function Topbar({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Install Mobile App Button */}
+        {!isInstalled && (
+          <button
+            type="button"
+            onClick={onInstallApp}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition shadow-2xs"
+            title="Install Mobile App on your device"
+          >
+            <Smartphone size={14} className="text-blue-600 shrink-0" />
+            <span className="hidden sm:inline">Install App</span>
+          </button>
+        )}
+
         {/* Logged-in User Name & Role in Top Bar */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-full shadow-xs">
           <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">

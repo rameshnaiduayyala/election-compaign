@@ -13,6 +13,7 @@ import PhotoPreviewModal from './components/voters/PhotoPreviewModal'
 import UsersManagement from './components/users/UsersManagement'
 import Login from './components/auth/Login'
 import Notice from './components/ui/Notice'
+import { usePWAInstall } from './utils/usePWAInstall'
 
 const BASE_NAV = [
   { id: 'dashboard', path: '/', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard },
@@ -37,6 +38,7 @@ export default function App() {
   const [mobileNav, setMobileNav] = useState(false)
   const [notice, setNotice] = useState('')
   const [photoPreview, setPhotoPreview] = useState(null)
+  const { isInstalled, triggerInstall } = usePWAInstall()
 
   const handleLogin = (userSession) => {
     setSession(userSession)
@@ -93,6 +95,8 @@ export default function App() {
                 onSignOut={handleSignOut}
                 mobileOpen={mobileNav}
                 onCloseMobile={() => setMobileNav(false)}
+                onInstallApp={triggerInstall}
+                isInstalled={isInstalled}
               />
 
               {/* Main Content Area */}
@@ -103,6 +107,8 @@ export default function App() {
                   userRole={currentUserRole}
                   onOpenMobileMenu={() => setMobileNav(true)}
                   onSignOut={handleSignOut}
+                  onInstallApp={triggerInstall}
+                  isInstalled={isInstalled}
                 />
 
                 <Notice 
