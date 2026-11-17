@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useReactToPrint } from 'react-to-print'
 import { supabase } from '../../lib/supabase'
 import { getPermissions } from '../../utils/permissions'
 import { formatRupee } from '../../utils/formatters'
@@ -200,13 +201,56 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
     }
   }
 
-  // Trigger browser print dialog
+  const printRef = useRef(null)
+
+  // Third-party printing via react-to-print
+  const triggerReactToPrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: heading ? `${heading.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}_Ward2` : 'Ward_2_Voter_Slip',
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 10mm 10mm 12mm 10mm;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .print-container {
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
+        tr {
+          page-break-inside: avoid !important;
+        }
+        th, td {
+          border-color: #cbd5e1 !important;
+        }
+      }
+    `
+  })
+
+  // Trigger print using react-to-print
   const handlePrint = () => {
     if (selectedVoters.length === 0) {
       if (setNotice) setNotice('Please select at least one voter to print.')
       return
     }
-    window.print()
+    triggerReactToPrint()
   }
 
   // Gender breakdown of selected group
@@ -587,7 +631,7 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
           {/* ======================================================== */}
           {/* THE PRINT SHEET (Rendered on screen & formatted on print) */}
           {/* ======================================================== */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-xs print:border-none print:shadow-none print:p-0 print:m-0 print-container">
+          <div ref={printRef} className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-xs print:border-none print:shadow-none print:p-0 print:m-0 print-container">
             
             {/* Sheet Official Header (Formatted cleanly for print and screen) */}
             <div className="border-b-2 border-slate-800 pb-3 mb-4">
