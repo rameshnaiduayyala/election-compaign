@@ -86,6 +86,9 @@ export default function Sidebar({
               >
                 <LogOut size={16} /> Sign Out
               </button>
+              <div className="text-[10px] text-center text-slate-500 mt-3 pt-2 border-t border-slate-800/80 font-medium">
+                Developed by <span className="font-semibold text-slate-300">Ramesh Ayyala</span>
+              </div>
             </div>
           </div>
         </div>

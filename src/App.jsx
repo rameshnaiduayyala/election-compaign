@@ -164,6 +164,17 @@ export default function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
 
+                {/* Global Application Footer */}
+                <footer className="mt-auto pt-8 pb-3 text-center text-xs text-slate-500 font-medium print:hidden">
+                  <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                    <span>© {new Date().getFullYear()} Akula Ajay · Ward 2 Venkayammapeta</span>
+                    <span className="text-slate-300 hidden sm:inline">·</span>
+                    <span className="font-semibold text-slate-600">
+                      Developed by <span className="text-blue-600 font-bold">Ramesh Ayyala</span>
+                    </span>
+                  </div>
+                </footer>
+
                 {/* Modal: Full Photo Preview */}
                 <PhotoPreviewModal 
                   photoPreview={photoPreview} 

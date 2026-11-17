@@ -233,6 +233,9 @@ export default function Login({ onLogin }) {
               Secure Access · Authorized Personnel Only
             </span>
           </div>
+          <div className="text-center text-[10px] text-slate-400 mt-2 font-medium">
+            Developed by <span className="font-bold text-slate-600">Ramesh Ayyala</span>
+          </div>
         </div>
       </div>
     </div>
