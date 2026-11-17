@@ -93,7 +93,14 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
           .order('serial_number', { ascending: true })
 
         if (error) throw error
-        setAllVoters(data || [])
+        // Numerical sort from start (848) to end (1694)
+        const sorted = (data || []).sort((a, b) => {
+          const numA = parseInt(a.serial_number, 10)
+          const numB = parseInt(b.serial_number, 10)
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB
+          return String(a.serial_number || '').localeCompare(String(b.serial_number || ''), undefined, { numeric: true })
+        })
+        setAllVoters(sorted)
       } catch (err) {
         if (setNotice) setNotice(`Failed to load electors: ${err.message}`)
       } finally {

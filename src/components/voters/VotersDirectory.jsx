@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { downloadVoterCsv, parseVoterCsv, downloadSampleCsvTemplate } from '../../lib/csv'
@@ -11,7 +11,7 @@ import { Search, Plus, Upload, Download, FileText, Shield, LayoutGrid, Table as 
 
 export default function VotersDirectory({ setNotice, userRole, currentUser, onOpenPhoto }) {
   const permissions = getPermissions(userRole)
-  const [rows, setRows] = useState([])
+  const [allRows, setAllRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid') // 'grid' (Default) | 'table'
   const [search, setSearch] = useState('')
@@ -54,25 +54,22 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
   async function loadData() {
     setLoading(true)
     try {
-      let q = supabase.from('voters').select('*').order('serial_number', { ascending: true })
+      const { data, error } = await supabase
+        .from('voters')
+        .select('*')
+        .order('serial_number', { ascending: true })
 
-      if (partyFilter === 'YSRCP') q = q.eq('is_ysrcp', true)
-      else if (partyFilter === 'TDP') q = q.eq('is_tdp', true)
-      else if (partyFilter === 'JSP') q = q.eq('is_jsp', true)
-      else if (partyFilter === 'OTHER') q = q.eq('is_other', true)
-      else if (partyFilter === 'PAID') q = q.gt('amount', 0)
-
-      if (search.trim()) {
-        const s = search.trim()
-        q = q.or(`voter_id.ilike.%${s}%,voter_name_english.ilike.%${s}%,voter_name_telugu.ilike.%${s}%,house_number.ilike.%${s}%`)
-      }
-
-      q = q.range(pageNum * pageSize, pageNum * pageSize + pageSize - 1)
-      const { data, error } = await q
       if (error) {
         setNotice(error.message)
       } else {
-        setRows(data || [])
+        // Strict numerical ascending sort (Starting from 848 sequentially up to 1694)
+        const sorted = (data || []).sort((a, b) => {
+          const numA = parseInt(a.serial_number, 10)
+          const numB = parseInt(b.serial_number, 10)
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB
+          return String(a.serial_number || '').localeCompare(String(b.serial_number || ''), undefined, { numeric: true })
+        })
+        setAllRows(sorted)
       }
     } catch (err) {
       setNotice(err.message)
@@ -83,7 +80,40 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
 
   useEffect(() => {
     loadData()
-  }, [pageNum, search, partyFilter])
+  }, [])
+
+  // Filter list based on search and party filter
+  const filteredRows = useMemo(() => {
+    let list = allRows
+
+    if (partyFilter === 'YSRCP') list = list.filter(r => r.is_ysrcp)
+    else if (partyFilter === 'TDP') list = list.filter(r => r.is_tdp)
+    else if (partyFilter === 'JSP') list = list.filter(r => r.is_jsp)
+    else if (partyFilter === 'OTHER') list = list.filter(r => r.is_other)
+    else if (partyFilter === 'PAID') list = list.filter(r => Number(r.amount) > 0)
+
+    if (search.trim()) {
+      const s = search.trim().toLowerCase()
+      list = list.filter(r => 
+        (r.voter_id && r.voter_id.toLowerCase().includes(s)) ||
+        (r.voter_name_english && r.voter_name_english.toLowerCase().includes(s)) ||
+        (r.voter_name_telugu && r.voter_name_telugu.toLowerCase().includes(s)) ||
+        (r.house_number && r.house_number.toLowerCase().includes(s)) ||
+        String(r.serial_number || '').toLowerCase().includes(s)
+      )
+    }
+
+    return list
+  }, [allRows, search, partyFilter])
+
+  // Total pages
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+
+  // Paginated slice for current page
+  const rows = useMemo(() => {
+    const start = pageNum * pageSize
+    return filteredRows.slice(start, start + pageSize)
+  }, [filteredRows, pageNum, pageSize])
 
   // Direct Supabase mutation for party toggle (Admin and Agent only)
   async function toggleParty(voter, party) {
@@ -103,15 +133,18 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
       updates[`is_${party.toLowerCase()}`] = true
     }
 
+    // Optimistic local update
+    setAllRows(prev => prev.map(r => r.id === voter.id ? { ...r, ...updates } : r))
+
     try {
       const { error } = await supabase.from('voters').update(updates).eq('id', voter.id)
       if (error) {
         setNotice(`Supabase update error: ${error.message}`)
-      } else {
         loadData()
       }
     } catch (err) {
       setNotice(err.message)
+      loadData()
     }
   }
 
@@ -122,12 +155,18 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
       return
     }
     const newStatus = !voter.is_verified
+    // Optimistic local update
+    setAllRows(prev => prev.map(r => r.id === voter.id ? { ...r, is_verified: newStatus } : r))
+
     try {
       const { error } = await supabase.from('voters').update({ is_verified: newStatus }).eq('id', voter.id)
-      if (error) setNotice(error.message)
-      else loadData()
+      if (error) {
+        setNotice(error.message)
+        loadData()
+      }
     } catch (err) {
       setNotice(err.message)
+      loadData()
     }
   }
 
@@ -270,9 +309,17 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
   // Direct Supabase CSV export
   async function exportCsv() {
     try {
-      const { data, error } = await supabase.from('voters').select('*').order('serial_number')
-      if (error) throw error
-      downloadVoterCsv(data || [], 'supabase_voters_export.csv')
+      const source = allRows.length > 0 
+        ? allRows 
+        : ((await supabase.from('voters').select('*').order('serial_number', { ascending: true })).data || [])
+      
+      const sorted = source.slice().sort((a, b) => {
+        const numA = parseInt(a.serial_number, 10)
+        const numB = parseInt(b.serial_number, 10)
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB
+        return String(a.serial_number || '').localeCompare(String(b.serial_number || ''), undefined, { numeric: true })
+      })
+      downloadVoterCsv(sorted, 'ward2_voters_serial_848_to_1694.csv')
     } catch (err) {
       setNotice(`Export error: ${err.message}`)
     }
@@ -366,7 +413,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
           <div className="flex items-center gap-2">
             <h3 className="text-sm sm:text-base font-bold text-slate-900 m-0">Voters Directory</h3>
             <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-bold text-[11px] border border-slate-200">
-              {rows.length}
+              {filteredRows.length} voters
             </span>
           </div>
 
@@ -442,8 +489,15 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
         )}
 
         {/* Pagination Footer */}
-        <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500 font-medium">
-          <span>Page {pageNum + 1}</span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500 font-medium">
+          <div>
+            Showing <span className="font-semibold text-slate-700">{filteredRows.length > 0 ? pageNum * pageSize + 1 : 0}</span> to <span className="font-semibold text-slate-700">{Math.min((pageNum + 1) * pageSize, filteredRows.length)}</span> of <span className="font-semibold text-slate-700">{filteredRows.length}</span> voters
+            {filteredRows.length > 0 && (
+              <span className="ml-2 font-mono text-slate-400">
+                (Serial {rows[0]?.serial_number} – {rows[rows.length - 1]?.serial_number})
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -453,10 +507,13 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
             >
               Previous
             </button>
+            <span className="px-2 font-semibold text-slate-600">
+              Page {pageNum + 1} of {totalPages}
+            </span>
             <button
               type="button"
               className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg shadow-2xs hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition"
-              disabled={rows.length < pageSize}
+              disabled={pageNum >= totalPages - 1}
               onClick={() => setPageNum(p => p + 1)}
             >
               Next

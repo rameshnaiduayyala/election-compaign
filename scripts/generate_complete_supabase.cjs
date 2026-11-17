@@ -65,7 +65,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- 1. Create Voters Table
 CREATE TABLE IF NOT EXISTS public.voters (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  serial_number text,
+  serial_number integer,
   voter_id text UNIQUE NOT NULL,
   voter_name_telugu text,
   voter_name_english text,

@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- 1. Create Voters Table
 CREATE TABLE IF NOT EXISTS public.voters (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  serial_number text,
+  serial_number integer,
   voter_id text UNIQUE NOT NULL,
   voter_name_telugu text,
   voter_name_english text,
@@ -38,6 +38,11 @@ CREATE TABLE IF NOT EXISTS public.voters (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Migration statement to convert existing text serial_number to integer:
+ALTER TABLE public.voters 
+ALTER COLUMN serial_number TYPE integer 
+USING NULLIF(regexp_replace(serial_number, '\D', '', 'g'), '')::integer;
 
 -- 2. Indexes for fast search and party filtering
 CREATE INDEX IF NOT EXISTS voters_voter_id_idx ON public.voters(voter_id);
