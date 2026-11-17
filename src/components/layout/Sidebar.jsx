@@ -24,9 +24,11 @@ export default function Sidebar({
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-black flex items-center justify-center text-lg shadow-md">
-                    E
-                  </div>
+                  <img 
+                    src="/Ajay-round.png" 
+                    alt="Akula Ajay" 
+                    className="w-10 h-10 rounded-full object-cover shadow-md border-2 border-blue-500/40"
+                  />
                   <div>
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400 block">WARD 2 · KADIYAPULANKA</span>
                     <b className="text-sm font-bold text-white block">Election Desk</b>
@@ -94,14 +96,16 @@ export default function Sidebar({
         {/* Brand Icon with hover tooltip */}
         <Link 
           to="/" 
-          className="relative group flex items-center justify-center w-11 h-11 rounded-xl transition hover:bg-slate-800" 
-          title="Election Desk (Ward 2)"
+          className="relative group flex items-center justify-center w-11 h-11 rounded-full transition hover:scale-105" 
+          title="Akula Ajay · Ward 2"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-extrabold flex items-center justify-center text-lg shadow-md">
-            E
-          </div>
+          <img 
+            src="/Ajay-round.png" 
+            alt="Akula Ajay" 
+            className="w-10 h-10 rounded-full object-cover shadow-md border-2 border-blue-500/40 group-hover:border-blue-400 transition"
+          />
           <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 border border-slate-700">
-            Election Desk (Ward 2)
+            Akula Ajay (Ward 2)
           </span>
         </Link>
 
