@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Plus, Edit3, Trash2, Search, X, Shield, Smartphone, RotateCcw, ShieldAlert, CheckCircle2 } from 'lucide-react'
 
-export default function UsersManagement({ setNotice, currentUserId }) {
+export default function UsersManagement({ setNotice, currentUserId, currentUserRole = 'admin' }) {
+  const isSuperAdmin = String(currentUserRole).toLowerCase().trim() === 'super_admin' || String(currentUserRole).toLowerCase().trim() === 'superadmin'
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -57,6 +58,11 @@ export default function UsersManagement({ setNotice, currentUserId }) {
   }
 
   function openEditModal(user) {
+    if ((user.role === 'super_admin' || user.role === 'superadmin') && !isSuperAdmin) {
+      setNotice('Access Denied: Super Admin accounts can only be edited by a Super Admin.')
+      return
+    }
+
     setEditingUser(user)
     setForm({
       username: user.username,
@@ -80,6 +86,12 @@ export default function UsersManagement({ setNotice, currentUserId }) {
 
       if (!trimmedUser || !trimmedName || !form.password) {
         setNotice('Please fill in username, password, and full name.')
+        setSaving(false)
+        return
+      }
+
+      if (form.role === 'super_admin' && !isSuperAdmin) {
+        setNotice('Access Denied: Only a Super Admin can create or assign the Super Admin role.')
         setSaving(false)
         return
       }
@@ -139,6 +151,11 @@ export default function UsersManagement({ setNotice, currentUserId }) {
       return
     }
 
+    if ((user.role === 'super_admin' || user.role === 'superadmin') && !isSuperAdmin) {
+      setNotice('Access Denied: Regular Administrators cannot delete Super Admin accounts.')
+      return
+    }
+
     const confirm = window.confirm(`Are you sure you want to delete user '${user.username}' (${user.role}) from Supabase?`)
     if (!confirm) return
 
@@ -156,11 +173,16 @@ export default function UsersManagement({ setNotice, currentUserId }) {
     }
   }
 
-  // Admin-Only Reset Device Binding
+  // Super Admin Exclusive Reset Device Binding
   async function handleResetDevice(user) {
-    const confirmMsg = `Are you sure you want to reset device binding for '${user.username}' (${user.full_name})?\n\n` +
+    if (!isSuperAdmin) {
+      setNotice('Access Denied: Only a Super Admin can reset user device binding. Regular Administrators cannot reset devices.')
+      return
+    }
+
+    const confirmMsg = `[Super Admin Authorization]\n\nAre you sure you want to reset device binding for '${user.username}' (${user.full_name})?\n\n` +
       `Currently Registered Device: ${user.bound_device_name || 'Registered Device'}\n\n` +
-      `Resetting will allow the user to register and bind a new device on their next login.`
+      `Resetting will allow this user to register and bind a new device on their next login.`
     
     if (!window.confirm(confirmMsg)) return
 
@@ -171,7 +193,7 @@ export default function UsersManagement({ setNotice, currentUserId }) {
       })
 
       if (!rpcError && rpcResult?.success) {
-        setNotice(`Device binding for '${user.username}' successfully reset.`)
+        setNotice(`Device binding for '${user.username}' successfully reset by Super Admin.`)
         loadUsers()
         return
       }
@@ -198,8 +220,11 @@ export default function UsersManagement({ setNotice, currentUserId }) {
 
   const roleBadge = (role) => {
     switch (role) {
+      case 'super_admin':
+      case 'superadmin':
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">SUPER ADMIN (All + Device Reset)</span>
       case 'admin':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">ADMIN (All Rights)</span>
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">ADMIN (No Device Reset)</span>
       case 'agent':
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">AGENT (Edit Party)</span>
       case 'distributor':
@@ -250,10 +275,14 @@ export default function UsersManagement({ setNotice, currentUserId }) {
           <Shield size={16} className="text-blue-600" />
           <span>User Role Rights Summary:</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-1 text-[11px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 pt-1 text-[11px]">
+          <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-200 shadow-2xs">
+            <b className="text-rose-900 block font-black">super_admin</b>
+            <span className="text-rose-700">All admin rights + Exclusive Device Reset authority</span>
+          </div>
           <div className="p-2.5 bg-white rounded-xl border border-purple-200 shadow-2xs">
             <b className="text-purple-800 block font-bold">admin</b>
-            <span className="text-slate-600">All rights (Voters, Party tags, Amounts, Users, CSV)</span>
+            <span className="text-slate-600">All rights (Voters, Party, Amounts, Users), CANNOT reset devices</span>
           </div>
           <div className="p-2.5 bg-white rounded-xl border border-amber-200 shadow-2xs">
             <b className="text-amber-800 block font-bold">agent</b>
@@ -273,9 +302,9 @@ export default function UsersManagement({ setNotice, currentUserId }) {
         <div className="mt-3 p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-start gap-2.5 text-slate-700">
           <Smartphone size={16} className="text-blue-600 shrink-0 mt-0.5" />
           <div className="space-y-0.5 text-[11px] leading-snug">
-            <span className="font-bold text-blue-900 block">Permanent Single-Device Binding Active:</span>
+            <span className="font-bold text-blue-900 block">Permanent Single-Device Binding Protection Active:</span>
             <span>
-              Each account permanently binds to the first device used for successful login. Unlimited login & logout sessions are permitted on that same device. All other devices are strictly blocked even when logged out. Click <b>Reset Device</b> if a field agent or worker loses or changes their phone.
+              Each account permanently binds to the first device used for successful login. Unlimited login & logout sessions are permitted on that same device. All other devices are strictly blocked even when logged out. <b>Only Super Admin can reset user devices; Admin cannot reset devices.</b>
             </span>
           </div>
         </div>
@@ -319,7 +348,12 @@ export default function UsersManagement({ setNotice, currentUserId }) {
                     <td className="px-4 py-3 font-bold text-slate-800">{u.full_name}</td>
                     <td className="px-4 py-3">{roleBadge(u.role)}</td>
                     <td className="px-4 py-3">
-                      {u.bound_device_id ? (
+                      {(u.role === 'super_admin' || u.role === 'superadmin') ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 size={11} className="text-emerald-600 shrink-0" />
+                          <span>All Devices Allowed (No Lock)</span>
+                        </span>
+                      ) : u.bound_device_id ? (
                         <div className="flex flex-col gap-0.5 max-w-[190px]">
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs">
                             <Smartphone size={11} className="text-blue-600 shrink-0" />
@@ -364,14 +398,23 @@ export default function UsersManagement({ setNotice, currentUserId }) {
                           <Edit3 size={13} /> Edit
                         </button>
                         {u.bound_device_id && (
-                          <button
-                            type="button"
-                            onClick={() => handleResetDevice(u)}
-                            className="px-2.5 py-1 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 font-semibold text-xs rounded-lg shadow-2xs transition inline-flex items-center gap-1"
-                            title="Reset device binding (allow user to bind a new device)"
-                          >
-                            <RotateCcw size={12} /> Reset Device
-                          </button>
+                          isSuperAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => handleResetDevice(u)}
+                              className="px-2.5 py-1 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-800 font-bold text-xs rounded-lg shadow-2xs transition inline-flex items-center gap-1"
+                              title="Reset device binding (Super Admin only)"
+                            >
+                              <RotateCcw size={12} /> Reset Device
+                            </button>
+                          ) : (
+                            <span 
+                              className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-medium rounded border border-slate-200 cursor-not-allowed select-none inline-flex items-center gap-1"
+                              title="Device reset is restricted to Super Admin only. Admin cannot reset devices."
+                            >
+                              Reset Locked
+                            </span>
+                          )
                         )}
                         <button
                           type="button"
@@ -451,7 +494,10 @@ export default function UsersManagement({ setNotice, currentUserId }) {
                       onChange={e => setForm({ ...form, role: e.target.value })}
                       className={inputClass}
                     >
-                      <option value="admin">admin (All rights)</option>
+                      {isSuperAdmin && (
+                        <option value="super_admin">super_admin (Full Admin + Device Reset)</option>
+                      )}
+                      <option value="admin">admin (Full Admin, No Device Reset)</option>
                       <option value="agent">agent (Change/edit Party Tag)</option>
                       <option value="distributor">distributor (Change Amount)</option>
                       <option value="user">user (Readonly only)</option>
@@ -504,16 +550,22 @@ export default function UsersManagement({ setNotice, currentUserId }) {
                         {editingUser.bound_device_name || 'Bound Device'}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleResetDevice(editingUser)
-                        setModalOpen(false)
-                      }}
-                      className="px-2.5 py-1.5 bg-white border border-amber-300 hover:bg-amber-50 text-amber-900 font-bold text-xs rounded-lg shadow-2xs transition inline-flex items-center gap-1"
-                    >
-                      <RotateCcw size={12} /> Reset Device
-                    </button>
+                    {isSuperAdmin ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleResetDevice(editingUser)
+                          setModalOpen(false)
+                        }}
+                        className="px-2.5 py-1.5 bg-rose-50 border border-rose-300 hover:bg-rose-100 text-rose-900 font-bold text-xs rounded-lg shadow-2xs transition inline-flex items-center gap-1"
+                      >
+                        <RotateCcw size={12} /> Reset Device
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-medium italic">
+                        (Super Admin only)
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

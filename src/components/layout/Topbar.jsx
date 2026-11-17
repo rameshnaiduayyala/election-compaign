@@ -11,6 +11,9 @@ export default function Topbar({
 }) {
   const getRoleBadge = (role) => {
     switch (String(role).toLowerCase()) {
+      case 'super_admin':
+      case 'superadmin':
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-300">Super Admin</span>
       case 'admin':
         return <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200">Admin</span>
       case 'agent':

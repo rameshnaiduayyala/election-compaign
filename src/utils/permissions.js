@@ -1,28 +1,36 @@
 export function getPermissions(role) {
   const r = String(role || '').toLowerCase().trim()
+  const isSuperAdmin = r === 'super_admin' || r === 'superadmin' || r === 'super admin'
+  const isAdmin = isSuperAdmin || r === 'admin'
+  const isAgent = r === 'agent' || r === 'booth_agent'
+  const isDistributor = r === 'distributor'
+  const isUser = r === 'user' || r === 'staff'
 
   return {
     role: r,
-    isAdmin: r === 'admin',
-    isAgent: r === 'agent',
-    isUser: r === 'user',
-    isDistributor: r === 'distributor',
+    isSuperAdmin,
+    isAdmin, // true for both super_admin and admin
+    isAgent,
+    isUser,
+    isDistributor,
     
-    // 1. admin has all rights
-    // 2. agent has change or edit Party Tag (isysrcp / isTDP / isJSP / other)
-    canEditParty: r === 'admin' || r === 'agent',
+    // Exclusive to Super Admin: Only Super Admin can reset user device binding!
+    // Regular Admin cannot reset devices.
+    canResetDevice: isSuperAdmin,
 
-    // 3. distributor has change amount (amount is hidden from agent & user)
-    canViewAmount: r === 'admin' || r === 'distributor',
-    canEditAmount: r === 'admin' || r === 'distributor',
+    // Shared privileges:
+    canEditParty: isAdmin || isAgent,
+    canViewAmount: isAdmin || isDistributor,
+    canEditAmount: isAdmin || isDistributor,
 
-    // 4. user has only show readonly
-    isReadOnly: r === 'user',
+    // Read-only check:
+    isReadOnly: isUser && !isAdmin && !isAgent && !isDistributor,
 
-    // Administrative privileges (Add, Delete, CSV Import)
-    canAddVoter: r === 'admin',
-    canDeleteVoter: r === 'admin',
-    canImportCsv: r === 'admin',
-    canManageExpenses: r === 'admin'
+    // Administrative privileges:
+    canAddVoter: isAdmin,
+    canDeleteVoter: isAdmin,
+    canImportCsv: isAdmin,
+    canManageExpenses: isAdmin,
+    canManageUsers: isAdmin
   }
 }

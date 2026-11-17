@@ -95,27 +95,32 @@ export default function Login({ onLogin }) {
         return
       }
 
-      // Check device binding
-      if (!user.bound_device_id) {
-        // First login on this account! Automatically bind this device permanently
-        try {
-          await supabase.from('users').update({
-            bound_device_id: currentDeviceId,
-            bound_device_name: currentDeviceName,
-            bound_device_at: new Date().toISOString()
-          }).eq('id', user.id)
-        } catch (e) {
-          console.warn('Could not update bound_device_id:', e)
+      // Super Admin is completely exempt from device binding (can log in from every device without lock)
+      const isSuperAdminUser = String(user.role).toLowerCase() === 'super_admin' || String(user.role).toLowerCase() === 'superadmin'
+
+      if (!isSuperAdminUser) {
+        // Check device binding for regular roles
+        if (!user.bound_device_id) {
+          // First login on this account! Automatically bind this device permanently
+          try {
+            await supabase.from('users').update({
+              bound_device_id: currentDeviceId,
+              bound_device_name: currentDeviceName,
+              bound_device_at: new Date().toISOString()
+            }).eq('id', user.id)
+          } catch (e) {
+            console.warn('Could not update bound_device_id:', e)
+          }
+        } else if (user.bound_device_id !== currentDeviceId) {
+          // Block other devices!
+          setDeviceBlockedInfo({
+            boundDeviceName: user.bound_device_name,
+            boundDeviceAt: user.bound_device_at
+          })
+          setError(`Access Denied: This account is permanently registered to another device (${user.bound_device_name || 'Registered Device'}). Contact an Administrator to reset your device binding.`)
+          setBusy(false)
+          return
         }
-      } else if (user.bound_device_id !== currentDeviceId) {
-        // Block other devices!
-        setDeviceBlockedInfo({
-          boundDeviceName: user.bound_device_name,
-          boundDeviceAt: user.bound_device_at
-        })
-        setError(`Access Denied: This account is permanently registered to another device (${user.bound_device_name || 'Registered Device'}). Contact an Administrator to reset your device binding.`)
-        setBusy(false)
-        return
       }
 
       // Device matches or was newly bound: allow login!
@@ -273,7 +278,7 @@ export default function Login({ onLogin }) {
                 <span className="truncate">{deviceBlockedInfo.boundDeviceName || 'Registered Device'}</span>
               </div>
               <p className="text-slate-500 text-[10px] leading-tight m-0">
-                🔒 Credentials cannot be used on multiple devices. All other devices remain blocked even when the original device is logged out. Please contact an Administrator to reset your device.
+                🔒 Credentials cannot be used on multiple devices. All other devices remain blocked even when the original device is logged out. Please contact Ramesh(7989419864) to reset your device.
               </p>
             </div>
           )}

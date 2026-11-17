@@ -46,6 +46,16 @@ BEGIN
     );
   END IF;
 
+  -- 0. Super Admin is completely exempt from device locks (can log in from any and every device without locking)
+  IF LOWER(v_user.role) IN ('super_admin', 'superadmin') THEN
+    RETURN jsonb_build_object(
+      'success', true,
+      'is_first_binding', false,
+      'message', 'Super Admin multi-device access granted (No device lock).',
+      'user', row_to_json(v_user)
+    );
+  END IF;
+
   -- 1. If NO device is bound yet: Bind this device permanently on first successful login!
   IF v_user.bound_device_id IS NULL OR v_user.bound_device_id = '' THEN
     UPDATE public.users
@@ -117,3 +127,12 @@ $$;
 -- Grant execution to public / anon role
 GRANT EXECUTE ON FUNCTION public.authenticate_and_validate_device(text, text, text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reset_user_device_binding(uuid) TO anon, authenticated;
+
+-- 5. Seed or Update Default Super Admin Account
+INSERT INTO public.users (username, email, password, full_name, role, ward_number, is_active)
+VALUES
+  ('superadmin', 'superadmin@election.com', 'superadmin123', 'Super Administrator', 'super_admin', '2', true)
+ON CONFLICT (username) DO UPDATE SET
+  password = EXCLUDED.password,
+  full_name = EXCLUDED.full_name,
+  role = 'super_admin';

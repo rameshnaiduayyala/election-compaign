@@ -61,8 +61,14 @@ export default function App() {
   // Active Single-Device Verification:
   // If an Admin resets device binding, or if credentials were transferred to another machine,
   // revoke session immediately.
+  // NOTE: Super Admin is completely exempt from device locks (can log in from any/every device).
   useEffect(() => {
     if (!session?.user?.id) return
+
+    const role = String(session.user.role || '').toLowerCase()
+    if (role === 'super_admin' || role === 'superadmin') {
+      return // Super Admin has unrestricted multi-device access
+    }
 
     const currentDeviceId = getDeviceId()
 
@@ -97,7 +103,8 @@ export default function App() {
 
   const currentUserName = session?.user?.full_name || session?.user?.username || 'User'
   const currentUserRole = String(session?.user?.role || 'user').toLowerCase()
-  const isAdmin = currentUserRole === 'admin'
+  const isSuperAdmin = currentUserRole === 'super_admin' || currentUserRole === 'superadmin'
+  const isAdmin = isSuperAdmin || currentUserRole === 'admin'
 
   // Only admins get User Management in navigation
   const navItems = isAdmin 
@@ -195,6 +202,7 @@ export default function App() {
                         <UsersManagement 
                           setNotice={setNotice}
                           currentUserId={session.user.id}
+                          currentUserRole={currentUserRole}
                         />
                       } 
                     />
@@ -206,10 +214,10 @@ export default function App() {
                 {/* Global Application Footer */}
                 <footer className="mt-auto pt-8 pb-3 text-center text-xs text-slate-500 font-medium print:hidden">
                   <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                    <span>© {new Date().getFullYear()} Akula Ajay · Ward 2 Venkayammapeta</span>
+                    <span>© {new Date().getFullYear()} Ward 2 Venkayammapeta</span>
                     <span className="text-slate-300 hidden sm:inline">·</span>
                     <span className="font-semibold text-slate-600">
-                      Developed by <span className="text-blue-600 font-bold">Ramesh Ayyala</span>
+                      Developed by <span className="text-blue-600 font-bold">Ramesh (7989419864)</span>
                     </span>
                   </div>
                 </footer>
