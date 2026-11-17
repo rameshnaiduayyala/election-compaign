@@ -61,8 +61,14 @@ export default function App() {
   // Active Single-Device Verification:
   // If an Admin resets device binding, or if credentials were transferred to another machine,
   // revoke session immediately.
+  // NOTE: Super Admin is completely exempt from device locks (can log in from any/every device).
   useEffect(() => {
     if (!session?.user?.id) return
+
+    const role = String(session.user.role || '').toLowerCase()
+    if (role === 'super_admin' || role === 'superadmin') {
+      return // Super Admin has unrestricted multi-device access
+    }
 
     const currentDeviceId = getDeviceId()
 

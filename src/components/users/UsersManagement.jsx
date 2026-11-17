@@ -348,7 +348,12 @@ export default function UsersManagement({ setNotice, currentUserId, currentUserR
                     <td className="px-4 py-3 font-bold text-slate-800">{u.full_name}</td>
                     <td className="px-4 py-3">{roleBadge(u.role)}</td>
                     <td className="px-4 py-3">
-                      {u.bound_device_id ? (
+                      {(u.role === 'super_admin' || u.role === 'superadmin') ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 size={11} className="text-emerald-600 shrink-0" />
+                          <span>All Devices Allowed (No Lock)</span>
+                        </span>
+                      ) : u.bound_device_id ? (
                         <div className="flex flex-col gap-0.5 max-w-[190px]">
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs">
                             <Smartphone size={11} className="text-blue-600 shrink-0" />
