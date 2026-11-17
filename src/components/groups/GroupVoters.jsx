@@ -68,6 +68,7 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
   const [showHouseCol, setShowHouseCol] = useState(true)
   const [showRelativeCol, setShowRelativeCol] = useState(true)
   const [showAmountCol, setShowAmountCol] = useState(false)
+  const [showVoteBanner, setShowVoteBanner] = useState(true)
 
   // Mobile View Switcher: 'select' (Picker) vs 'preview' (Print Sheet)
   const [mobileTab, setMobileTab] = useState('select')
@@ -620,6 +621,15 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                     <span>Amount</span>
                   </label>
                 )}
+                <label className="flex items-center gap-1.5 cursor-pointer select-none font-bold text-blue-700 bg-blue-50/70 border border-blue-200 px-2 py-0.5 rounded-md">
+                  <input
+                    type="checkbox"
+                    checked={showVoteBanner}
+                    onChange={(e) => setShowVoteBanner(e.target.checked)}
+                    className="rounded text-blue-600"
+                  />
+                  <span>🗳️ Vote for Akula Ajay</span>
+                </label>
               </div>
 
               <div className="text-xs font-bold text-slate-500">
@@ -633,6 +643,31 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
           {/* ======================================================== */}
           <div ref={printRef} className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-xs print:border-none print:shadow-none print:p-0 print:m-0 print-container">
             
+            {/* Candidate Campaign Banner */}
+            {showVoteBanner && (
+              <div className="bg-slate-900 text-white px-4 py-2.5 rounded-xl mb-4 flex items-center justify-between border-b-2 border-slate-900 print:bg-slate-950 print:text-white print:rounded-none">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl leading-none">🗳️</span>
+                  <div>
+                    <div className="text-sm sm:text-base font-black tracking-wider uppercase text-white flex items-center gap-2">
+                      <span>VOTE FOR AKULA AJAY</span>
+                      <span className="hidden sm:inline-block text-[11px] font-bold text-blue-300 normal-case">
+                        (ఆకుల అజయ్ కి మీ అమూల్యమైన ఓటు వేసి గెలిపించండి)
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-300 font-medium leading-tight mt-0.5">
+                      2వ వార్డు మెంబర్ అభ్యర్థి (Ward 2 Member Candidate) · వెంకాయమ్మపేట, కడియపులంక
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="inline-block px-2.5 py-1 bg-white text-slate-950 font-black text-xs rounded uppercase tracking-wider print:border print:border-black">
+                    WARD NO. 2
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Sheet Official Header (Formatted cleanly for print and screen) */}
             <div className="border-b-2 border-slate-800 pb-3 mb-4">
               <div className="flex items-center justify-between text-[11px] text-slate-600 uppercase tracking-widest font-bold mb-1">
@@ -687,7 +722,7 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                         <th className="py-2 px-2.5 text-center">Amount</th>
                       )}
                       {showSignCol && (
-                        <th className="py-2 px-4 text-center min-w-[90px]">Signature / Remark</th>
+                        <th className="py-2 px-4 text-center min-w-[90px]">Remark</th>
                       )}
                       <th className="no-print py-2 px-2 text-center w-10">Remove</th>
                     </tr>
@@ -766,12 +801,14 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
 
             {/* Print Footer / Verification Box */}
             {selectedVoters.length > 0 && (
-              <div className="mt-8 pt-4 border-t border-slate-300 flex items-center justify-between text-[10px] text-slate-500 font-medium">
-                <div>
-                  Printed by: <b>{userRole.toUpperCase()}</b> · Ward 2 Kadiyapulanka
+              <div className="mt-8 pt-4 border-t-2 border-slate-800 flex items-center justify-between text-[11px] text-slate-700 font-semibold flex-wrap gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">🗳️</span>
+                  <span className="font-extrabold text-slate-950 uppercase tracking-wide">VOTE FOR AKULA AJAY</span>
+                  <span className="text-slate-500 font-normal">· Ward 2 Venkayammapeta, Kadiyapulanka</span>
                 </div>
-                <div className="text-right">
-                  Agent / Incharge Signature: _______________________
+                <div className="text-right text-[10px] text-slate-500 font-medium">
+                  Printed by: <b>{userRole.toUpperCase()}</b> · Signature: _______________________
                 </div>
               </div>
             )}
