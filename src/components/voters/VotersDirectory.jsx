@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { downloadVoterCsv, parseVoterCsv, downloadSampleCsvTemplate } from '../../lib/csv'
 import { getPermissions } from '../../utils/permissions'
@@ -11,13 +11,16 @@ import { DEFAULT_AREAS } from '../areas/AreasManagement'
 import { Search, Plus, Upload, Download, FileText, Shield, LayoutGrid, Table as TableIcon, Printer, MapPin } from 'lucide-react'
 
 export default function VotersDirectory({ setNotice, userRole, currentUser, onOpenPhoto }) {
+  const [searchParams] = useSearchParams()
+  const areaQueryParam = searchParams.get('area')
+
   const permissions = getPermissions(userRole)
   const [allRows, setAllRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid') // 'grid' (Default) | 'table'
   const [search, setSearch] = useState('')
   const [partyFilter, setPartyFilter] = useState('ALL') // 'ALL', 'YSRCP', 'TDP', 'JSP', 'OTHER', 'PAID'
-  const [areaFilter, setAreaFilter] = useState('ALL') // 'ALL' or specific area name
+  const [areaFilter, setAreaFilter] = useState(areaQueryParam || 'ALL') // 'ALL' or specific area name
   const [areasList, setAreasList] = useState(DEFAULT_AREAS)
   const [uploading, setUploading] = useState(false)
   const [pageNum, setPageNum] = useState(0)
