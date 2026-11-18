@@ -144,6 +144,38 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
     return filteredRows.slice(start, start + pageSize)
   }, [filteredRows, pageNum, pageSize])
 
+  // Direct Supabase mutation for area update
+  async function handleAssignArea(voterId, newAreaName) {
+    if (!permissions.canEditParty && !permissions.isAdmin) {
+      setNotice(`Access Denied: You do not have permission to change voter areas.`)
+      return
+    }
+
+    const matchedArea = areasList.find(a => a.name === newAreaName)
+    const area_id = matchedArea?.id || null
+    const area_name = newAreaName || null
+
+    // Optimistic local update
+    setAllRows(prev => prev.map(r => r.id === voterId ? { ...r, area_id, area_name } : r))
+
+    try {
+      const { error } = await supabase
+        .from('voters')
+        .update({ area_id, area_name })
+        .eq('id', voterId)
+
+      if (error) {
+        setNotice(`Failed to update area: ${error.message}. (Did you execute supabase/CREATE_AREAS_TABLE.sql?)`)
+        loadData()
+      } else {
+        setNotice(`Updated area to "${newAreaName || 'None'}" for voter`)
+      }
+    } catch (err) {
+      setNotice(err.message)
+      loadData()
+    }
+  }
+
   // Direct Supabase mutation for party toggle (Admin and Agent only)
   async function toggleParty(voter, party) {
     if (!permissions.canEditParty) {
@@ -438,7 +470,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
           ))}
         </div>
 
-        {/* Area Dropdown Filter */}
+        {/* Area Dropdown Filter & Print Area Button */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-1.5 bg-white border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
             <MapPin size={14} className="text-blue-600 shrink-0" />
@@ -460,6 +492,15 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
               })}
             </select>
           </div>
+
+          <Link
+            to={areaFilter !== 'ALL' ? `/group-voters?area=${encodeURIComponent(areaFilter)}` : '/group-voters'}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold rounded-xl shadow-2xs transition shrink-0"
+            title="Print voter list for this area"
+          >
+            <Printer size={14} />
+            <span>{areaFilter !== 'ALL' ? `Print ${areaFilter}` : 'Print Area'}</span>
+          </Link>
         </div>
       </div>
 
@@ -521,6 +562,8 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
                 <VoterCard 
                   key={r.id}
                   voter={r}
+                  areas={areasList}
+                  onAssignArea={handleAssignArea}
                   permissions={permissions}
                   onOpenPhoto={onOpenPhoto}
                   onToggleParty={toggleParty}
@@ -535,6 +578,8 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
           <VoterTable 
             rows={rows}
             loading={loading}
+            areas={areasList}
+            onAssignArea={handleAssignArea}
             permissions={permissions}
             onOpenPhoto={onOpenPhoto}
             onToggleParty={toggleParty}

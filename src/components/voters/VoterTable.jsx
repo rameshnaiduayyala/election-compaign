@@ -5,6 +5,8 @@ import { IndianRupee, Edit3, Trash2, Lock, CheckCircle2 } from 'lucide-react'
 export default function VoterTable({ 
   rows, 
   loading, 
+  areas = [],
+  onAssignArea,
   permissions,
   onOpenPhoto, 
   onToggleParty, 
@@ -70,9 +72,25 @@ export default function VoterTable({
                 </td>
                 <td className="px-3.5 py-2.5 whitespace-nowrap">
                   <b className="text-slate-900 block">{r.house_number || '—'}</b>
-                  <span className="text-blue-700 font-semibold block text-[10px] truncate max-w-[120px]" title={r.area_name || 'Ward 2'}>
-                    {r.area_name || 'Ward 2'}
-                  </span>
+                  {onAssignArea && (isAdmin || canEditParty) ? (
+                    <select
+                      value={r.area_name || ''}
+                      onChange={(e) => onAssignArea(r.id, e.target.value)}
+                      className="mt-0.5 bg-white border border-blue-200 rounded px-1 py-0.5 text-[10px] font-bold text-blue-800 outline-none max-w-[125px] cursor-pointer"
+                      title="Select area for this voter"
+                    >
+                      <option value="">-- Area --</option>
+                      {areas.map(a => (
+                        <option key={a.id || a.name} value={a.name}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-blue-700 font-semibold block text-[10px] truncate max-w-[120px]" title={r.area_name || 'Ward 2'}>
+                      {r.area_name || 'Ward 2'}
+                    </span>
+                  )}
                 </td>
                 <td className="px-3.5 py-2.5 whitespace-nowrap">
                   {r.age || '—'} yrs / <span className="font-semibold text-slate-800">{r.gender || '—'}</span>

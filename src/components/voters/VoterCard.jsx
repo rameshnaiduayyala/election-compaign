@@ -4,6 +4,8 @@ import { IndianRupee, Image as ImageIcon, Trash2, User, Clock, Lock, CheckCircle
 
 export default function VoterCard({ 
   voter, 
+  areas = [],
+  onAssignArea,
   permissions,
   onOpenPhoto, 
   onToggleParty, 
@@ -102,11 +104,27 @@ export default function VoterCard({
         <div><b className="text-slate-800">Door / House:</b> <span className="block truncate">{voter.house_number || '—'}</span></div>
         <div><b className="text-slate-800">Age / Gender:</b> <span className="block truncate">{voter.age || '—'} / {voter.gender || '—'}</span></div>
         <div><b className="text-slate-800">Ward No:</b> <span className="block truncate">{voter.ward_number || '2'}</span></div>
-        <div>
-          <b className="text-slate-800">Area:</b> 
-          <span className="block truncate text-blue-700 font-semibold" title={voter.area_name || 'Ward 2'}>
-            {voter.area_name || 'Ward 2'}
-          </span>
+        <div className="relative">
+          <b className="text-slate-800 block text-[11px] mb-0.5">Area / Street:</b>
+          {onAssignArea && (isAdmin || canEditParty) ? (
+            <select
+              value={voter.area_name || ''}
+              onChange={(e) => onAssignArea(voter.id, e.target.value)}
+              className="w-full bg-white border border-blue-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+              title="Select area for this voter"
+            >
+              <option value="">-- No Area --</option>
+              {areas.map(a => (
+                <option key={a.id || a.name} value={a.name}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="block truncate text-blue-700 font-semibold" title={voter.area_name || 'Not assigned'}>
+              {voter.area_name || 'Not assigned'}
+            </span>
+          )}
         </div>
       </div>
 
