@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useReactToPrint } from 'react-to-print'
 import { supabase } from '../../lib/supabase'
 import { getPermissions } from '../../utils/permissions'
 import { formatRupee } from '../../utils/formatters'
+import { DEFAULT_AREAS } from '../areas/AreasManagement'
 import { 
   Printer, 
   Search, 
@@ -19,7 +21,8 @@ import {
   CheckSquare,
   Square,
   Eye,
-  SlidersHorizontal
+  SlidersHorizontal,
+  MapPin
 } from 'lucide-react'
 
 const PRESET_HEADINGS = [
@@ -32,14 +35,20 @@ const PRESET_HEADINGS = [
 ]
 
 export default function GroupVoters({ userRole = 'user', setNotice }) {
+  const [searchParams] = useSearchParams()
+  const initialAreaParam = searchParams.get('area') || ''
+
   const permissions = useMemo(() => getPermissions(userRole), [userRole])
   const { canViewAmount } = permissions
 
   const [allVoters, setAllVoters] = useState([])
+  const [areasList, setAreasList] = useState(DEFAULT_AREAS)
+  const [selectedArea, setSelectedArea] = useState(initialAreaParam)
   const [loading, setLoading] = useState(true)
 
   // Heading & Subtitle inputs
   const [heading, setHeading] = useState(() => {
+    if (initialAreaParam) return `${initialAreaParam} - Voters List`
     return sessionStorage.getItem('group_voters_heading') || 'Ramalayam Veedhi / Family Group'
   })
   const [subheading, setSubheading] = useState(() => {
@@ -110,7 +119,34 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
       }
     }
     fetchElectors()
+
+    // Fetch areas from Supabase
+    async function fetchAreas() {
+      try {
+        const { data, error } = await supabase.from('areas').select('*').order('name', { ascending: true })
+        if (!error && data && data.length > 0) {
+          setAreasList(data)
+        }
+      } catch (e) {
+        console.warn('Areas lookup error in GroupVoters:', e)
+      }
+    }
+    fetchAreas()
   }, [setNotice])
+
+  // Auto-populate group if area query param is passed
+  useEffect(() => {
+    if (initialAreaParam && allVoters.length > 0) {
+      const areaVoters = allVoters.filter(v => 
+        (v.area_name && v.area_name.toLowerCase() === initialAreaParam.toLowerCase()) ||
+        v.area_id === initialAreaParam
+      )
+      if (areaVoters.length > 0) {
+        setSelectedVoters(areaVoters)
+        setHeading(`${initialAreaParam} - Voters List`)
+      }
+    }
+  }, [initialAreaParam, allVoters])
 
   // Extract unique house numbers for quick street/house selector
   const uniqueHouses = useMemo(() => {
@@ -130,6 +166,14 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
   const filteredVoters = useMemo(() => {
     let list = allVoters
 
+    // Filter by Area
+    if (selectedArea) {
+      list = list.filter(v => 
+        (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) ||
+        v.area_id === selectedArea
+      )
+    }
+
     if (selectedHouse) {
       list = list.filter(v => (v.house_number || '').trim().toLowerCase() === selectedHouse.toLowerCase())
     }
@@ -146,12 +190,13 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
         (v.voter_name_telugu && v.voter_name_telugu.toLowerCase().includes(q)) ||
         (v.voter_id && v.voter_id.toLowerCase().includes(q)) ||
         (v.house_number && v.house_number.toLowerCase().includes(q)) ||
+        (v.area_name && v.area_name.toLowerCase().includes(q)) ||
         String(v.serial_number) === q
       )
     }
 
     return list
-  }, [allVoters, search, selectedHouse, partyFilter])
+  }, [allVoters, search, selectedArea, selectedHouse, partyFilter])
 
   // Set of already selected voter IDs for fast lookup
   const selectedIdsSet = useMemo(() => {
@@ -167,6 +212,48 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
   // Remove individual voter
   const handleRemoveVoter = (id) => {
     setSelectedVoters(prev => prev.filter(v => v.id !== id))
+  }
+
+  // Batch Add all electors in the selected Area and trigger print
+  const handleSelectAreaAndPrint = (areaName) => {
+    const targetArea = areaName || selectedArea
+    if (!targetArea) {
+      if (setNotice) setNotice('Please select an Area / Street first.')
+      return
+    }
+
+    const areaElectors = allVoters.filter(v => 
+      (v.area_name && v.area_name.toLowerCase() === targetArea.toLowerCase()) ||
+      v.area_id === targetArea
+    )
+
+    if (areaElectors.length === 0) {
+      if (setNotice) setNotice(`No voters assigned to "${targetArea}" yet. Assign voters first in Voters Directory.`)
+      return
+    }
+
+    setSelectedVoters(areaElectors)
+    setHeading(`${targetArea} - Voter Slips`)
+    setSubheading(`Ward 2, Venkayammapeta · Area Wise Electoral Polling Roll (${areaElectors.length} Electors)`)
+    setMobileTab('preview')
+    if (setNotice) setNotice(`Selected all ${areaElectors.length} voters of ${targetArea}. Click Print to print!`)
+  }
+
+  // Batch Add all electors in the selected Area
+  const handleAddEntireArea = () => {
+    if (!selectedArea) return
+    const areaElectors = allVoters.filter(v => 
+      (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) ||
+      v.area_id === selectedArea
+    )
+    const unadded = areaElectors.filter(v => !selectedIdsSet.has(v.id))
+    if (unadded.length === 0) {
+      if (setNotice) setNotice(`All electors in ${selectedArea} are already in print list.`)
+      return
+    }
+    setSelectedVoters(prev => [...prev, ...unadded])
+    setHeading(`${selectedArea} - Electors List`)
+    if (setNotice) setNotice(`Added ${unadded.length} electors from ${selectedArea} to print list.`)
   }
 
   // Add all in currently selected house
@@ -358,6 +445,62 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
               <span className="text-xs text-slate-500 font-medium">
                 {filteredVoters.length} available
               </span>
+            </div>
+
+            {/* Quick Area Filter with Select All & Print */}
+            <div className="mb-3 bg-blue-50/60 p-2.5 rounded-xl border border-blue-200/80">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-bold text-blue-900 flex items-center gap-1">
+                  <MapPin size={13} className="text-blue-600" />
+                  Filter by Area / Street
+                </label>
+                {selectedArea && (
+                  <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200">
+                    {allVoters.filter(v => (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) || v.area_id === selectedArea).length} voters
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <select
+                  value={selectedArea}
+                  onChange={(e) => setSelectedArea(e.target.value)}
+                  className="flex-1 text-xs bg-white border border-blue-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                >
+                  <option value="">-- Choose Area / Street --</option>
+                  {areasList.map(a => {
+                    const count = allVoters.filter(v => (v.area_name && v.area_name.toLowerCase() === a.name.toLowerCase()) || v.area_id === a.id).length
+                    return (
+                      <option key={a.id || a.name} value={a.name}>
+                        {a.name} ({count} voters)
+                      </option>
+                    )
+                  })}
+                </select>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleAddEntireArea}
+                    disabled={!selectedArea}
+                    className="flex-1 sm:flex-initial px-3 py-2 text-xs font-bold text-blue-700 bg-white hover:bg-blue-100/70 border border-blue-300 rounded-xl transition flex items-center justify-center gap-1 disabled:opacity-40 disabled:pointer-events-none shadow-2xs"
+                    title="Add all voters in this area"
+                  >
+                    <Plus size={13} />
+                    <span>Select All</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAreaAndPrint(selectedArea)}
+                    disabled={!selectedArea}
+                    className="flex-1 sm:flex-initial px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none shadow-xs"
+                    title="Select all area voters and open print sheet"
+                  >
+                    <Printer size={13} />
+                    <span>Print Area</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Quick House / Street Filter */}

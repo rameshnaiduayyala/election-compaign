@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, UserCheck, Printer } from 'lucide-react'
+import { LayoutDashboard, Users, UserCheck, Printer, MapPin } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { getDeviceId } from './utils/deviceBinding'
 
@@ -11,6 +11,7 @@ import BottomNav from './components/layout/BottomNav'
 import Dashboard from './components/dashboard/Dashboard'
 import VotersDirectory from './components/voters/VotersDirectory'
 import GroupVoters from './components/groups/GroupVoters'
+import AreasManagement from './components/areas/AreasManagement'
 import PhotoPreviewModal from './components/voters/PhotoPreviewModal'
 import UsersManagement from './components/users/UsersManagement'
 import Login from './components/auth/Login'
@@ -106,15 +107,20 @@ export default function App() {
   const isSuperAdmin = currentUserRole === 'super_admin' || currentUserRole === 'superadmin'
   const isAdmin = isSuperAdmin || currentUserRole === 'admin'
 
-  // Only admins get User Management in navigation
+  // Only admins get User Management and Area Management in navigation
   const navItems = isAdmin 
-    ? [...BASE_NAV, { id: 'users', path: '/users', label: 'User Management', shortLabel: 'Users', icon: UserCheck }]
+    ? [
+        ...BASE_NAV, 
+        { id: 'areas', path: '/areas', label: 'Area Management', shortLabel: 'Areas', icon: MapPin },
+        { id: 'users', path: '/users', label: 'User Management', shortLabel: 'Users', icon: UserCheck }
+      ]
     : BASE_NAV
 
   // Page title derived from current URL path
   const currentPageTitle = 
     location.pathname === '/voters' ? 'Voters Directory' :
     location.pathname === '/group-voters' ? 'Group & Print Voters' :
+    location.pathname === '/areas' ? 'Area Management' :
     location.pathname === '/users' ? 'User Management' :
     'Dashboard'
 
@@ -194,6 +200,15 @@ export default function App() {
                   <Route 
                     path="/groups" 
                     element={<Navigate to="/group-voters" replace />} 
+                  />
+                  <Route 
+                    path="/areas" 
+                    element={
+                      <AreasManagement 
+                        setNotice={setNotice}
+                        currentUserRole={currentUserRole}
+                      />
+                    } 
                   />
                   {isAdmin && (
                     <Route 
