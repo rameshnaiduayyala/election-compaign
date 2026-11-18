@@ -7,7 +7,8 @@ import VoterTable from './VoterTable'
 import VoterCard from './VoterCard'
 import AmountModal from './AmountModal'
 import AddVoterModal from './AddVoterModal'
-import { Search, Plus, Upload, Download, FileText, Shield, LayoutGrid, Table as TableIcon, Printer } from 'lucide-react'
+import { DEFAULT_AREAS } from '../areas/AreasManagement'
+import { Search, Plus, Upload, Download, FileText, Shield, LayoutGrid, Table as TableIcon, Printer, MapPin } from 'lucide-react'
 
 export default function VotersDirectory({ setNotice, userRole, currentUser, onOpenPhoto }) {
   const permissions = getPermissions(userRole)
@@ -16,6 +17,8 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
   const [viewMode, setViewMode] = useState('grid') // 'grid' (Default) | 'table'
   const [search, setSearch] = useState('')
   const [partyFilter, setPartyFilter] = useState('ALL') // 'ALL', 'YSRCP', 'TDP', 'JSP', 'OTHER', 'PAID'
+  const [areaFilter, setAreaFilter] = useState('ALL') // 'ALL' or specific area name
+  const [areasList, setAreasList] = useState(DEFAULT_AREAS)
   const [uploading, setUploading] = useState(false)
   const [pageNum, setPageNum] = useState(0)
   const pageSize = 50
@@ -42,6 +45,8 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
     age: '',
     gender: 'Female',
     ward_number: '2',
+    area_id: null,
+    area_name: '',
     image_path: '',
     is_ysrcp: false,
     is_tdp: false,
@@ -54,6 +59,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
   async function loadData() {
     setLoading(true)
     try {
+      // 1. Fetch voters
       const { data, error } = await supabase
         .from('voters')
         .select('*')
@@ -71,6 +77,20 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
         })
         setAllRows(sorted)
       }
+
+      // 2. Fetch areas
+      try {
+        const { data: areasData, error: areasError } = await supabase
+          .from('areas')
+          .select('*')
+          .order('name', { ascending: true })
+
+        if (!areasError && areasData && areasData.length > 0) {
+          setAreasList(areasData)
+        }
+      } catch (e) {
+        console.warn('Areas table not loaded:', e)
+      }
     } catch (err) {
       setNotice(err.message)
     } finally {
@@ -82,7 +102,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
     loadData()
   }, [])
 
-  // Filter list based on search and party filter
+  // Filter list based on search, party filter, and area filter
   const filteredRows = useMemo(() => {
     let list = allRows
 
@@ -92,6 +112,14 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
     else if (partyFilter === 'OTHER') list = list.filter(r => r.is_other)
     else if (partyFilter === 'PAID') list = list.filter(r => Number(r.amount) > 0)
 
+    // Area dropdown filter
+    if (areaFilter !== 'ALL') {
+      list = list.filter(r => 
+        (r.area_name && r.area_name.toLowerCase() === areaFilter.toLowerCase()) ||
+        (r.area_id && r.area_id === areaFilter)
+      )
+    }
+
     if (search.trim()) {
       const s = search.trim().toLowerCase()
       list = list.filter(r => 
@@ -99,12 +127,13 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
         (r.voter_name_english && r.voter_name_english.toLowerCase().includes(s)) ||
         (r.voter_name_telugu && r.voter_name_telugu.toLowerCase().includes(s)) ||
         (r.house_number && r.house_number.toLowerCase().includes(s)) ||
+        (r.area_name && r.area_name.toLowerCase().includes(s)) ||
         String(r.serial_number || '').toLowerCase().includes(s)
       )
     }
 
     return list
-  }, [allRows, search, partyFilter])
+  }, [allRows, search, partyFilter, areaFilter])
 
   // Total pages
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
@@ -382,29 +411,56 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
         </div>
       </div>
 
-      {/* Filter Tabs / Chips (Scrollable on small mobile screens) */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {[
-          { id: 'ALL', label: 'All Voters' },
-          { id: 'YSRCP', label: '🟢 isysrcp' },
-          { id: 'TDP', label: '🟡 isTDP' },
-          { id: 'JSP', label: '🔴 isJSP' },
-          { id: 'OTHER', label: '🟣 other' },
-          ...(permissions.canViewAmount ? [{ id: 'PAID', label: '₹ amount > 0' }] : [])
-        ].map(tab => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => { setPartyFilter(tab.id); setPageNum(0) }}
-            className={`whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold border transition shrink-0 ${
-              partyFilter === tab.id 
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Filter Tabs / Chips & Area Selector (Scrollable on small mobile screens) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Party Filter Chips */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {[
+            { id: 'ALL', label: 'All Voters' },
+            { id: 'YSRCP', label: '🟢 isysrcp' },
+            { id: 'TDP', label: '🟡 isTDP' },
+            { id: 'JSP', label: '🔴 isJSP' },
+            { id: 'OTHER', label: '🟣 other' },
+            ...(permissions.canViewAmount ? [{ id: 'PAID', label: '₹ amount > 0' }] : [])
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => { setPartyFilter(tab.id); setPageNum(0) }}
+              className={`whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold border transition shrink-0 ${
+                partyFilter === tab.id 
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Area Dropdown Filter */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs">
+            <MapPin size={14} className="text-blue-600 shrink-0" />
+            <span className="text-xs font-bold text-slate-600 hidden xs:inline">Area:</span>
+            <select
+              value={areaFilter}
+              onChange={e => { setAreaFilter(e.target.value); setPageNum(0) }}
+              className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-1"
+            >
+              <option value="ALL">All Areas (All Voters)</option>
+              {areasList.map(a => {
+                // Calculate count for this specific area
+                const count = allRows.filter(r => (r.area_name && r.area_name.toLowerCase() === a.name.toLowerCase()) || r.area_id === a.id).length
+                return (
+                  <option key={a.id || a.name} value={a.name}>
+                    {a.name} ({count})
+                  </option>
+                )
+              })}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Directory Main Panel */}
@@ -542,6 +598,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
           setForm={setVoterForm}
           onSave={handleAddVoter}
           onClose={() => setVoterModalOpen(false)}
+          areas={areasList}
         />
       )}
     </div>

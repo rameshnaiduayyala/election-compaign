@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 
-export default function AddVoterModal({ isOpen, form, setForm, onSave, onClose }) {
+export default function AddVoterModal({ isOpen, form, setForm, onSave, onClose, areas = [] }) {
   if (!isOpen) return null
 
   const inputClass = "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition"
@@ -113,14 +113,27 @@ export default function AddVoterModal({ isOpen, form, setForm, onSave, onClose }
               </div>
               <div>
                 <label className={labelClass}>
-                  Ward Number
+                  Area / Street
                 </label>
-                <input
-                  value={form.ward_number}
-                  onChange={e => setForm({ ...form, ward_number: e.target.value })}
-                  placeholder="2"
+                <select
+                  value={form.area_name || ''}
+                  onChange={e => {
+                    const selected = areas.find(a => a.name === e.target.value)
+                    setForm({ 
+                      ...form, 
+                      area_name: e.target.value,
+                      area_id: selected?.id || null 
+                    })
+                  }}
                   className={inputClass}
-                />
+                >
+                  <option value="">-- Select Area --</option>
+                  {areas.map(a => (
+                    <option key={a.id || a.name} value={a.name}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 import { formatRupee, FALLBACK_AVATAR } from '../../utils/formatters'
 import PartySelector from './PartySelector'
-import { IndianRupee, Image as ImageIcon, Trash2, User, Clock, Lock, CheckCircle2 } from 'lucide-react'
+import { IndianRupee, Image as ImageIcon, Trash2, User, Clock, Lock, CheckCircle2, MapPin } from 'lucide-react'
 
 export default function VoterCard({ 
   voter, 
@@ -102,7 +102,12 @@ export default function VoterCard({
         <div><b className="text-slate-800">Door / House:</b> <span className="block truncate">{voter.house_number || '—'}</span></div>
         <div><b className="text-slate-800">Age / Gender:</b> <span className="block truncate">{voter.age || '—'} / {voter.gender || '—'}</span></div>
         <div><b className="text-slate-800">Ward No:</b> <span className="block truncate">{voter.ward_number || '2'}</span></div>
-        <div><b className="text-slate-800">Booth:</b> <span className="block truncate">Ward 2</span></div>
+        <div>
+          <b className="text-slate-800">Area:</b> 
+          <span className="block truncate text-blue-700 font-semibold" title={voter.area_name || 'Ward 2'}>
+            {voter.area_name || 'Ward 2'}
+          </span>
+        </div>
       </div>
 
       {/* Party Affiliation Selection Tag */}

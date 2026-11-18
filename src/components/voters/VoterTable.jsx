@@ -23,7 +23,7 @@ export default function VoterTable({
             <th className="px-3.5 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Sl.</th>
             <th className="px-3.5 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Voter ID</th>
             <th className="px-3.5 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Voter Name & Relative</th>
-            <th className="px-3.5 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">House / Ward</th>
+            <th className="px-3.5 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">House / Area</th>
             <th className="px-3.5 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Age / Gen</th>
             <th className="px-3.5 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap min-w-[280px]">Party Tag (isysrcp / isTDP / isJSP / other)</th>
             {canViewAmount && (
@@ -70,7 +70,9 @@ export default function VoterTable({
                 </td>
                 <td className="px-3.5 py-2.5 whitespace-nowrap">
                   <b className="text-slate-900 block">{r.house_number || '—'}</b>
-                  <small className="text-slate-500 block text-[10px]">{r.ward_number ? `Ward ${r.ward_number}` : 'Ward 2'}</small>
+                  <span className="text-blue-700 font-semibold block text-[10px] truncate max-w-[120px]" title={r.area_name || 'Ward 2'}>
+                    {r.area_name || 'Ward 2'}
+                  </span>
                 </td>
                 <td className="px-3.5 py-2.5 whitespace-nowrap">
                   {r.age || '—'} yrs / <span className="font-semibold text-slate-800">{r.gender || '—'}</span>
