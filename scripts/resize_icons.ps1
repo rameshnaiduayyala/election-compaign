@@ -18,6 +18,6 @@ function Resize-Image([string]$source, [string]$dest, [int]$size) {
     Write-Host "Generated $dest ($size x $size)"
 }
 
-Resize-Image 'public/Ajay-round.png' 'public/pwa-192x192.png' 192
-Resize-Image 'public/Ajay-round.png' 'public/pwa-512x512.png' 512
-Resize-Image 'public/Ajay-round.png' 'public/apple-touch-icon.png' 180
+Resize-Image 'public/ajy-app-icon.png' 'public/pwa-192x192.png' 192
+Resize-Image 'public/ajy-app-icon.png' 'public/pwa-512x512.png' 512
+Resize-Image 'public/ajy-app-icon.png' 'public/apple-touch-icon.png' 180

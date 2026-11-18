@@ -26,7 +26,7 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/Ajay-round.png',
+            src: '/ajy-app-icon.png',
             sizes: '192x192 256x256 512x512',
             type: 'image/png',
             purpose: 'any'
