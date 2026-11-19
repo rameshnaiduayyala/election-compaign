@@ -239,113 +239,108 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
       {/* Visual Party Share Progress Bar */}
       <PartyProgressBar stats={stats} percentages={percentages} />
 
-      {/* Area-Wise KPI Cards Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+      {/* Area-Wise Summary Table Section */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
               <MapPin size={18} />
             </span>
             <div>
-              <h3 className="text-base font-bold text-slate-900 m-0">Area-Wise Key Performance Indicators</h3>
-              <p className="text-xs text-slate-500 m-0">Live elector count and party breakdown by street and neighborhood</p>
+              <h3 className="text-base font-bold text-slate-900 m-0">Area-Wise Voters Summary</h3>
+              <p className="text-xs text-slate-500 m-0">Elector count and distribution by street & colony</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => navigate('/areas')}
-            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition"
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-100/70"
           >
             <span>Manage Areas</span>
             <ArrowRight size={13} />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-          {loading ? (
-            <div className="col-span-full py-8 text-center text-xs text-slate-400 font-medium">
-              Loading Area-wise metrics…
-            </div>
-          ) : areaStats.length === 0 ? (
-            <div className="col-span-full py-8 text-center text-xs text-slate-400 font-medium">
-              No areas configured yet.
-            </div>
-          ) : (
-            areaStats.map(area => (
-              <div 
-                key={area.id}
-                className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-blue-300 transition duration-150 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
-                        {area.name}
-                      </h4>
-                      <span className="text-[11px] text-slate-400 font-medium">
-                        Ward {area.ward_number} {area.description ? `· ${area.description}` : ''}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/80">
+                <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Area / Street</th>
+                <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Ward No</th>
+                <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Total Voters</th>
+                {permissions.canViewAmount && (
+                  <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Disbursement</th>
+                )}
+                <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={permissions.canViewAmount ? 5 : 4} className="text-center py-10 text-slate-400 font-medium">
+                    Loading Area-wise metrics…
+                  </td>
+                </tr>
+              ) : areaStats.length === 0 ? (
+                <tr>
+                  <td colSpan={permissions.canViewAmount ? 5 : 4} className="text-center py-10 text-slate-500 font-medium">
+                    No areas configured yet.
+                  </td>
+                </tr>
+              ) : (
+                areaStats.map(area => (
+                  <tr key={area.id} className="hover:bg-slate-50/70 transition">
+                    <td className="px-4 py-3">
+                      <b className="text-slate-900 block text-xs sm:text-sm">{area.name}</b>
+                      {area.description && (
+                        <span className="text-[11px] text-slate-400 block line-clamp-1">{area.description}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-600">
+                      Ward {area.ward_number || '2'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        {area.totalVoters} Voters
                       </span>
-                    </div>
-                    <span className="shrink-0 px-2.5 py-1 bg-blue-50 text-blue-700 font-extrabold text-xs rounded-xl border border-blue-200 shadow-2xs">
-                      {area.totalVoters} Voters
-                    </span>
-                  </div>
-
-                  {/* Party Breakdown Mini Badges */}
-                  <div className="grid grid-cols-4 gap-1.5 my-3 text-center">
-                    <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-1.5">
-                      <span className="block text-[10px] font-bold text-emerald-800 uppercase">YSRCP</span>
-                      <b className="text-xs font-black text-emerald-700">{area.ysrcp}</b>
-                    </div>
-                    <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-1.5">
-                      <span className="block text-[10px] font-bold text-amber-900 uppercase">TDP</span>
-                      <b className="text-xs font-black text-amber-700">{area.tdp}</b>
-                    </div>
-                    <div className="bg-red-50 border border-red-200/80 rounded-xl p-1.5">
-                      <span className="block text-[10px] font-bold text-red-800 uppercase">JSP</span>
-                      <b className="text-xs font-black text-red-700">{area.jsp}</b>
-                    </div>
-                    <div className="bg-purple-50 border border-purple-200/80 rounded-xl p-1.5">
-                      <span className="block text-[10px] font-bold text-purple-800 uppercase">OTH</span>
-                      <b className="text-xs font-black text-purple-700">{area.other}</b>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Action: View Voters or Print */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
-                  {permissions.canViewAmount && area.paidCount > 0 ? (
-                    <span className="text-[11px] font-bold text-slate-600">
-                      Paid: <span className="text-emerald-700">{formatRupee(area.totalPaid)}</span> ({area.paidCount})
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      Ward 2 Sector
-                    </span>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/voters?area=${encodeURIComponent(area.name)}`)}
-                      className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition"
-                      title={`View voters in ${area.name}`}
-                    >
-                      View List
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/group-voters?area=${encodeURIComponent(area.name)}`)}
-                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] rounded-lg border border-blue-200 transition"
-                      title={`Print voter slips for ${area.name}`}
-                    >
-                      Print Slips
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+                    </td>
+                    {permissions.canViewAmount && (
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {area.paidCount > 0 ? (
+                          <div>
+                            <span className="font-bold text-emerald-700 block">{formatRupee(area.totalPaid)}</span>
+                            <span className="text-[10px] text-slate-400">({area.paidCount} funded)</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-mono text-[11px]">₹0</span>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/voters?area=${encodeURIComponent(area.name)}`)}
+                          className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition"
+                          title={`View voters in ${area.name}`}
+                        >
+                          View List
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/group-voters?area=${encodeURIComponent(area.name)}`)}
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] rounded-lg border border-blue-200 transition"
+                          title={`Print voter slips for ${area.name}`}
+                        >
+                          Print Slips
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

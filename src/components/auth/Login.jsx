@@ -32,49 +32,8 @@ export default function Login({ onLogin }) {
       const currentDeviceId = getDeviceId()
       const currentDeviceName = getDeviceName()
 
-      // 1. Try secure server-side RPC validation first
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('authenticate_and_validate_device', {
-        p_username: trimmed,
-        p_password: password,
-        p_device_id: currentDeviceId,
-        p_device_name: currentDeviceName
-      })
-
-      // If server RPC executed successfully
-      if (!rpcError && rpcResult) {
-        if (!rpcResult.success) {
-          if (rpcResult.error === 'DEVICE_BLOCKED') {
-            setDeviceBlockedInfo({
-              boundDeviceName: rpcResult.bound_device_name,
-              boundDeviceAt: rpcResult.bound_device_at
-            })
-            setError(rpcResult.message || 'Access blocked: Account is bound to another device.')
-          } else {
-            setError(rpcResult.message || 'Invalid username or password.')
-          }
-          setBusy(false)
-          return
-        }
-
-        // Login succeeded via RPC!
-        const userData = rpcResult.user
-        onLogin({
-          user: {
-            id: userData.id,
-            username: userData.username,
-            full_name: userData.full_name,
-            email: userData.email,
-            role: userData.role,
-            ward_number: userData.ward_number,
-            phone: userData.phone,
-            bound_device_id: currentDeviceId,
-            bound_device_name: currentDeviceName
-          }
-        })
-        return
-      }
-
-      // 2. Direct Supabase Query & Validation (Graceful fallback if RPC not installed yet)
+      // 1. Check if user is super admin first or query user directly
+      // Super Admin is completely exempt from device binding (can log in from any and every device without locking)
       const { data: user, error: queryError } = await supabase
         .from('users')
         .select('*')
@@ -95,35 +54,51 @@ export default function Login({ onLogin }) {
         return
       }
 
-      // Super Admin is completely exempt from device binding (can log in from every device without lock)
-      const isSuperAdminUser = String(user.role).toLowerCase() === 'super_admin' || String(user.role).toLowerCase() === 'superadmin'
+      const normalizedRole = String(user.role || '').toLowerCase().trim().replace(/[\s_-]+/g, '')
+      const isSuperAdminUser = normalizedRole === 'superadmin'
 
-      if (!isSuperAdminUser) {
-        // Check device binding for regular roles
-        if (!user.bound_device_id) {
-          // First login on this account! Automatically bind this device permanently
-          try {
-            await supabase.from('users').update({
-              bound_device_id: currentDeviceId,
-              bound_device_name: currentDeviceName,
-              bound_device_at: new Date().toISOString()
-            }).eq('id', user.id)
-          } catch (e) {
-            console.warn('Could not update bound_device_id:', e)
+      if (isSuperAdminUser) {
+        // Super Admin logs in immediately on ANY device with ZERO bounding checks or restrictions
+        onLogin({
+          user: {
+            id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            email: user.email,
+            role: user.role,
+            ward_number: user.ward_number,
+            phone: user.phone,
+            bound_device_id: null,
+            bound_device_name: 'Unrestricted (Super Admin)'
           }
-        } else if (user.bound_device_id !== currentDeviceId) {
-          // Block other devices!
-          setDeviceBlockedInfo({
-            boundDeviceName: user.bound_device_name,
-            boundDeviceAt: user.bound_device_at
-          })
-          setError(`Access Denied: This account is permanently registered to another device (${user.bound_device_name || 'Registered Device'}). Contact an Administrator to reset your device binding.`)
-          setBusy(false)
-          return
-        }
+        })
+        return
       }
 
-      // Device matches or was newly bound: allow login!
+      // For standard users/admins/agents: Validate device binding
+      if (!user.bound_device_id) {
+        // First login on this account: Automatically bind this device
+        try {
+          await supabase.from('users').update({
+            bound_device_id: currentDeviceId,
+            bound_device_name: currentDeviceName,
+            bound_device_at: new Date().toISOString()
+          }).eq('id', user.id)
+        } catch (e) {
+          console.warn('Could not update bound_device_id:', e)
+        }
+      } else if (user.bound_device_id !== currentDeviceId) {
+        // Block other devices
+        setDeviceBlockedInfo({
+          boundDeviceName: user.bound_device_name,
+          boundDeviceAt: user.bound_device_at
+        })
+        setError(`Access Denied: This account is permanently registered to another device (${user.bound_device_name || 'Registered Device'}). Contact Super Admin to reset your device binding.`)
+        setBusy(false)
+        return
+      }
+
+      // Standard user login succeeded!
       onLogin({
         user: {
           id: user.id,
