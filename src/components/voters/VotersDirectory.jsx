@@ -7,6 +7,7 @@ import VoterTable from './VoterTable'
 import VoterCard from './VoterCard'
 import AmountModal from './AmountModal'
 import AddVoterModal from './AddVoterModal'
+import EditVoterModal from './EditVoterModal'
 import { DEFAULT_AREAS } from '../areas/AreasManagement'
 import { Search, Plus, Upload, Download, FileText, Shield, LayoutGrid, Table as TableIcon, Printer, MapPin } from 'lucide-react'
 
@@ -58,6 +59,62 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
     amount: '',
     note: ''
   })
+
+  // Edit Voter Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editVoterId, setEditVoterId] = useState(null)
+  const [editForm, setEditForm] = useState({
+    serial_number: '',
+    voter_id: '',
+    voter_name_english: '',
+    voter_name_telugu: '',
+    relative_name: '',
+    relation_type: 'Father',
+    house_number: '',
+    age: '',
+    gender: 'Female',
+    ward_number: '2',
+    area_id: null,
+    area_name: '',
+    image_path: '',
+    is_ysrcp: false,
+    is_tdp: false,
+    is_jsp: false,
+    is_other: false,
+    amount: '',
+    note: ''
+  })
+
+  // Open Edit Voter Modal (Admin & Super Admin)
+  function handleOpenEditVoter(voter) {
+    if (!permissions.canEditVoter) {
+      setNotice('Access Denied: Only Admin and Super Admin can edit voter records.')
+      return
+    }
+    setEditVoterId(voter.id)
+    setEditForm({
+      serial_number: voter.serial_number || '',
+      voter_id: voter.voter_id || '',
+      voter_name_english: voter.voter_name_english || '',
+      voter_name_telugu: voter.voter_name_telugu || '',
+      relative_name: voter.relative_name || '',
+      relation_type: voter.relation_type || 'Father',
+      house_number: voter.house_number || '',
+      age: voter.age || '',
+      gender: voter.gender || 'Female',
+      ward_number: voter.ward_number || '2',
+      area_id: voter.area_id || null,
+      area_name: voter.area_name || '',
+      image_path: voter.image_path || '',
+      is_ysrcp: !!voter.is_ysrcp,
+      is_tdp: !!voter.is_tdp,
+      is_jsp: !!voter.is_jsp,
+      is_other: !!voter.is_other,
+      amount: voter.amount || '',
+      note: voter.note || ''
+    })
+    setEditModalOpen(true)
+  }
 
   async function loadData() {
     setLoading(true)
@@ -319,12 +376,53 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
 
     try {
       const { error } = await supabase.from('voters').insert(newVoter)
-      if (error) throw error
+      if (error) {
+        if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('voters_voter_id_key')) {
+          setNotice(`Duplicate Voter ID: An elector with Voter ID "${newVoter.voter_id}" already exists in the database! Please search for this Voter ID or use a unique ID.`)
+          return
+        }
+        throw error
+      }
       setNotice(`Saved voter ${newVoter.voter_id} to Supabase`)
       setVoterModalOpen(false)
       loadData()
     } catch (err) {
       setNotice(`Supabase error: ${err.message}`)
+    }
+  }
+
+  // Direct Supabase update / edit voter (Admin & Super Admin only)
+  async function handleSaveEditVoter(e) {
+    e.preventDefault()
+    if (!permissions.canEditVoter || !editVoterId) {
+      setNotice('Access Denied: Only Admin and Super Admin can edit voter records.')
+      return
+    }
+
+    const updatedData = {
+      ...editForm,
+      age: editForm.age ? Number(editForm.age) : null,
+      amount: editForm.amount ? Number(editForm.amount) : 0,
+      amount_given_user: Number(editForm.amount) > 0 ? (editForm.amount_given_user || currentUser) : null,
+      amount_given_time: Number(editForm.amount) > 0 ? (editForm.amount_given_time || new Date().toISOString()) : null,
+      updated_at: new Date().toISOString()
+    }
+
+    try {
+      const { error } = await supabase.from('voters').update(updatedData).eq('id', editVoterId)
+      if (error) {
+        if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('voters_voter_id_key')) {
+          setNotice(`Duplicate Voter ID: An elector with Voter ID "${updatedData.voter_id}" already exists!`)
+          return
+        }
+        throw error
+      }
+      setNotice(`Updated voter ${updatedData.voter_id} successfully!`)
+      setEditModalOpen(false)
+      setEditVoterId(null)
+      loadData()
+    } catch (err) {
+      setNotice(`Failed to update voter: ${err.message}`)
     }
   }
 
@@ -579,6 +677,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
                   onAssignArea={handleAssignArea}
                   permissions={permissions}
                   onOpenPhoto={onOpenPhoto}
+                  onEditVoter={handleOpenEditVoter}
                   onToggleParty={toggleParty}
                   onOpenAmountModal={openAmountModal}
                   onToggleVerified={toggleVerified}
@@ -595,6 +694,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
             onAssignArea={handleAssignArea}
             permissions={permissions}
             onOpenPhoto={onOpenPhoto}
+            onEditVoter={handleOpenEditVoter}
             onToggleParty={toggleParty}
             onOpenAmountModal={openAmountModal}
             onToggleVerified={toggleVerified}
@@ -656,6 +756,17 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
           setForm={setVoterForm}
           onSave={handleAddVoter}
           onClose={() => setVoterModalOpen(false)}
+          areas={areasList}
+        />
+      )}
+
+      {permissions.canEditVoter && (
+        <EditVoterModal 
+          isOpen={editModalOpen}
+          form={editForm}
+          setForm={setEditForm}
+          onSave={handleSaveEditVoter}
+          onClose={() => { setEditModalOpen(false); setEditVoterId(null) }}
           areas={areasList}
         />
       )}
