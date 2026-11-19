@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useReactToPrint } from 'react-to-print'
 import { supabase } from '../../lib/supabase'
 import { getPermissions } from '../../utils/permissions'
-import { formatRupee } from '../../utils/formatters'
+import { formatRupee, FALLBACK_AVATAR } from '../../utils/formatters'
 import { DEFAULT_AREAS } from '../areas/AreasManagement'
 import { 
   Printer, 
@@ -16,13 +16,15 @@ import {
   Home, 
   FileText, 
   Filter, 
-  Sparkles,
-  UserPlus,
-  CheckSquare,
-  Square,
-  Eye,
-  SlidersHorizontal,
-  MapPin
+  Sparkles, 
+  UserPlus, 
+  CheckSquare, 
+  Square, 
+  Eye, 
+  SlidersHorizontal, 
+  MapPin, 
+  Image as ImageIcon 
+} from 'lucide-react'
 } from 'lucide-react'
 
 const PRESET_HEADINGS = [
@@ -73,8 +75,10 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
 
   // Print Option Toggles
   const [showSignCol, setShowSignCol] = useState(true)
-  const [showPartyCol, setShowPartyCol] = useState(true)
-  const [showHouseCol, setShowHouseCol] = useState(true)
+  const [showPhotoCol, setShowPhotoCol] = useState(false)
+  const [showPartyCol, setShowPartyCol] = useState(false)
+  const [showHouseCol, setShowHouseCol] = useState(false)
+  const [showAgeSexCol, setShowAgeSexCol] = useState(false)
   const [showRelativeCol, setShowRelativeCol] = useState(true)
   const [showAmountCol, setShowAmountCol] = useState(false)
   const [showVoteBanner, setShowVoteBanner] = useState(true)
@@ -733,7 +737,7 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                     onChange={(e) => setShowSignCol(e.target.checked)}
                     className="rounded text-blue-600"
                   />
-                  <span>Sign / Remark box</span>
+                  <span>Notes box</span>
                 </label>
                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
                   <input
@@ -752,6 +756,24 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                     className="rounded text-blue-600"
                   />
                   <span>Relative</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showHouseCol}
+                    onChange={(e) => setShowHouseCol(e.target.checked)}
+                    className="rounded text-blue-600"
+                  />
+                  <span>House #</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showAgeSexCol}
+                    onChange={(e) => setShowAgeSexCol(e.target.checked)}
+                    className="rounded text-blue-600"
+                  />
+                  <span>Age/Sex</span>
                 </label>
                 {canViewAmount && (
                   <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -857,7 +879,9 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                       {showHouseCol && (
                         <th className="py-2 px-2.5 text-center">House #</th>
                       )}
-                      <th className="py-2 px-2.5 text-center">Age/Sex</th>
+                      {showAgeSexCol && (
+                        <th className="py-2 px-2.5 text-center">Age/Sex</th>
+                      )}
                       {showPartyCol && (
                         <th className="py-2 px-2.5 text-center">Party</th>
                       )}
@@ -865,7 +889,7 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                         <th className="py-2 px-2.5 text-center">Amount</th>
                       )}
                       {showSignCol && (
-                        <th className="py-2 px-4 text-center min-w-[90px]">Remark</th>
+                        <th className="py-2 px-4 text-center min-w-[90px]">Notes</th>
                       )}
                       <th className="no-print py-2 px-2 text-center w-10">Remove</th>
                     </tr>
@@ -907,9 +931,11 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                             {voter.house_number || '—'}
                           </td>
                         )}
-                        <td className="py-2 px-2.5 text-center text-slate-700 font-medium whitespace-nowrap">
-                          {voter.age || '—'} / {voter.gender || '—'}
-                        </td>
+                        {showAgeSexCol && (
+                          <td className="py-2 px-2.5 text-center text-slate-700 font-medium whitespace-nowrap">
+                            {voter.age || '—'} / {voter.gender || '—'}
+                          </td>
+                        )}
                         {showPartyCol && (
                           <td className="py-2 px-2.5 text-center">
                             {getPartyBadge(voter)}
