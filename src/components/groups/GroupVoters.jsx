@@ -25,7 +25,6 @@ import {
   MapPin, 
   Image as ImageIcon 
 } from 'lucide-react'
-} from 'lucide-react'
 
 const PRESET_HEADINGS = [
   'Ramalayam Veedhi',
@@ -733,6 +732,15 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
                   <input
                     type="checkbox"
+                    checked={showPhotoCol}
+                    onChange={(e) => setShowPhotoCol(e.target.checked)}
+                    className="rounded text-blue-600"
+                  />
+                  <span>Photo</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
                     checked={showSignCol}
                     onChange={(e) => setShowSignCol(e.target.checked)}
                     className="rounded text-blue-600"
@@ -870,6 +878,9 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                   <thead>
                     <tr className="border-b-2 border-slate-800 bg-slate-50 print:bg-slate-100 text-[11px] font-bold text-slate-900 uppercase">
                       <th className="py-2 px-2 text-center w-8">#</th>
+                      {showPhotoCol && (
+                        <th className="py-2 px-2 text-center w-12">Photo</th>
+                      )}
                       <th className="py-2 px-2 text-center w-14">Sl. #</th>
                       <th className="py-2 px-2.5 whitespace-nowrap">EPIC ID</th>
                       <th className="py-2 px-3">Elector Name</th>
@@ -900,6 +911,22 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                         <td className="py-2 px-2 text-center font-mono font-semibold text-slate-500">
                           {idx + 1}
                         </td>
+                        {showPhotoCol && (
+                          <td className="py-1 px-1.5 text-center">
+                            {voter.image_path ? (
+                              <img
+                                src={voter.image_path}
+                                alt=""
+                                className="w-8 h-10 object-cover rounded border border-slate-300 mx-auto bg-slate-100"
+                                onError={(e) => { e.target.src = FALLBACK_AVATAR }}
+                              />
+                            ) : (
+                              <div className="w-8 h-10 bg-slate-100 border border-slate-300 rounded mx-auto flex items-center justify-center text-[10px] text-slate-400 font-bold">
+                                {(voter.voter_name_english || 'V')[0]}
+                              </div>
+                            )}
+                          </td>
+                        )}
                         <td className="py-2 px-2 text-center font-bold text-blue-700">
                           {voter.serial_number}
                         </td>
