@@ -140,13 +140,22 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
   // Auto-populate group if area query param is passed
   useEffect(() => {
     if (initialAreaParam && allVoters.length > 0) {
-      const areaVoters = allVoters.filter(v => 
-        (v.area_name && v.area_name.toLowerCase() === initialAreaParam.toLowerCase()) ||
-        v.area_id === initialAreaParam
-      )
-      if (areaVoters.length > 0) {
-        setSelectedVoters(areaVoters)
-        setHeading(`${initialAreaParam} - Voters List`)
+      let areaVoters = []
+      if (initialAreaParam === 'UNASSIGNED') {
+        areaVoters = allVoters.filter(v => !v.area_name && !v.area_id)
+        if (areaVoters.length > 0) {
+          setSelectedVoters(areaVoters)
+          setHeading('Unassigned Electors - Voters List')
+        }
+      } else {
+        areaVoters = allVoters.filter(v => 
+          (v.area_name && v.area_name.toLowerCase() === initialAreaParam.toLowerCase()) ||
+          v.area_id === initialAreaParam
+        )
+        if (areaVoters.length > 0) {
+          setSelectedVoters(areaVoters)
+          setHeading(`${initialAreaParam} - Voters List`)
+        }
       }
     }
   }, [initialAreaParam, allVoters])
@@ -169,8 +178,10 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
   const filteredVoters = useMemo(() => {
     let list = allVoters
 
-    // Filter by Area
-    if (selectedArea) {
+    // Filter by Area (including UNASSIGNED)
+    if (selectedArea === 'UNASSIGNED') {
+      list = list.filter(v => !v.area_name && !v.area_id)
+    } else if (selectedArea) {
       list = list.filter(v => 
         (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) ||
         v.area_id === selectedArea
@@ -225,18 +236,20 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
       return
     }
 
-    const areaElectors = allVoters.filter(v => 
-      (v.area_name && v.area_name.toLowerCase() === targetArea.toLowerCase()) ||
-      v.area_id === targetArea
-    )
+    const areaElectors = targetArea === 'UNASSIGNED'
+      ? allVoters.filter(v => !v.area_name && !v.area_id)
+      : allVoters.filter(v => 
+          (v.area_name && v.area_name.toLowerCase() === targetArea.toLowerCase()) ||
+          v.area_id === targetArea
+        )
 
     if (areaElectors.length === 0) {
-      if (setNotice) setNotice(`No voters assigned to "${targetArea}" yet. Assign voters first in Voters Directory.`)
+      if (setNotice) setNotice(`No voters found in "${targetArea}".`)
       return
     }
 
     setSelectedVoters(areaElectors)
-    setHeading(`${targetArea} - Voter Slips`)
+    setHeading(targetArea === 'UNASSIGNED' ? 'Unassigned Area - Voter Slips' : `${targetArea} - Voter Slips`)
     setSubheading(`Ward 2, Venkayammapeta · Area Wise Electoral Polling Roll (${areaElectors.length} Electors)`)
     setMobileTab('preview')
     if (setNotice) setNotice(`Selected all ${areaElectors.length} voters of ${targetArea}. Click Print to print!`)
@@ -245,17 +258,19 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
   // Batch Add all electors in the selected Area
   const handleAddEntireArea = () => {
     if (!selectedArea) return
-    const areaElectors = allVoters.filter(v => 
-      (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) ||
-      v.area_id === selectedArea
-    )
+    const areaElectors = selectedArea === 'UNASSIGNED'
+      ? allVoters.filter(v => !v.area_name && !v.area_id)
+      : allVoters.filter(v => 
+          (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) ||
+          v.area_id === selectedArea
+        )
     const unadded = areaElectors.filter(v => !selectedIdsSet.has(v.id))
     if (unadded.length === 0) {
       if (setNotice) setNotice(`All electors in ${selectedArea} are already in print list.`)
       return
     }
     setSelectedVoters(prev => [...prev, ...unadded])
-    setHeading(`${selectedArea} - Electors List`)
+    setHeading(selectedArea === 'UNASSIGNED' ? 'Unassigned Area - Electors List' : `${selectedArea} - Electors List`)
     if (setNotice) setNotice(`Added ${unadded.length} electors from ${selectedArea} to print list.`)
   }
 
@@ -459,7 +474,10 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                 </label>
                 {selectedArea && (
                   <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200">
-                    {allVoters.filter(v => (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) || v.area_id === selectedArea).length} voters
+                    {selectedArea === 'UNASSIGNED' 
+                      ? allVoters.filter(v => !v.area_name && !v.area_id).length
+                      : allVoters.filter(v => (v.area_name && v.area_name.toLowerCase() === selectedArea.toLowerCase()) || v.area_id === selectedArea).length
+                    } voters
                   </span>
                 )}
               </div>
@@ -478,6 +496,14 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
                       </option>
                     )
                   })}
+                  {(() => {
+                    const unassignedCount = allVoters.filter(v => !v.area_name && !v.area_id).length
+                    return (
+                      <option value="UNASSIGNED">
+                        ⚠️ Unassigned ({unassignedCount} voters)
+                      </option>
+                    )
+                  })()}
                 </select>
 
                 <div className="flex items-center gap-1.5 shrink-0">
