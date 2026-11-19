@@ -1,6 +1,6 @@
 import { formatRupee, FALLBACK_AVATAR } from '../../utils/formatters'
 import PartySelector from './PartySelector'
-import { IndianRupee, Edit3, Trash2, Lock, CheckCircle2 } from 'lucide-react'
+import { IndianRupee, Edit3, Trash2, Lock, CheckCircle2, UserCheck } from 'lucide-react'
 
 export default function VoterTable({ 
   rows, 
@@ -9,12 +9,13 @@ export default function VoterTable({
   onAssignArea,
   permissions,
   onOpenPhoto, 
+  onEditVoter,
   onToggleParty, 
   onOpenAmountModal, 
   onToggleVerified, 
   onDeleteVoter 
 }) {
-  const { canEditParty, canEditAmount, canViewAmount, canDeleteVoter, isAdmin, isDistributor } = permissions
+  const { canEditParty, canEditAmount, canViewAmount, canDeleteVoter, canEditVoter, isAdmin, isDistributor } = permissions
 
   return (
     <div className="overflow-x-auto">
@@ -166,14 +167,24 @@ export default function VoterTable({
                 </td>
                 <td className="px-3.5 py-2.5 whitespace-nowrap">
                   <div className="flex items-center gap-1">
+                    {canEditVoter && onEditVoter && (
+                      <button
+                        type="button"
+                        onClick={() => onEditVoter(r)}
+                        className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition"
+                        title="Edit voter details (Admin)"
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                    )}
                     {canViewAmount && canEditAmount && (isAdmin || !isDistributor || Number(r.amount) === 0) && (
                       <button
                         type="button"
                         onClick={() => onOpenAmountModal(r)}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition"
+                        className="p-1.5 text-slate-500 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition"
                         title={Number(r.amount) > 0 ? "Edit disbursement" : "Add disbursement"}
                       >
-                        <Edit3 size={15} />
+                        <IndianRupee size={14} />
                       </button>
                     )}
                     {canDeleteVoter && (
@@ -186,7 +197,7 @@ export default function VoterTable({
                         <Trash2 size={15} />
                       </button>
                     )}
-                    {(!canEditAmount || (isDistributor && Number(r.amount) > 0)) && !canDeleteVoter && (
+                    {(!canEditAmount || (isDistributor && Number(r.amount) > 0)) && !canDeleteVoter && !canEditVoter && (
                       <span className="text-[11px] text-slate-400 italic">View only</span>
                     )}
                   </div>

@@ -28,6 +28,7 @@ export function getPermissions(role) {
 
     // Administrative privileges:
     canAddVoter: isAdmin,
+    canEditVoter: isAdmin, // true for both super_admin and admin
     canDeleteVoter: isAdmin,
     canImportCsv: isAdmin,
     canManageExpenses: isAdmin,

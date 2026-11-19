@@ -1,6 +1,6 @@
 import { formatRupee, FALLBACK_AVATAR } from '../../utils/formatters'
 import PartySelector from './PartySelector'
-import { IndianRupee, Image as ImageIcon, Trash2, User, Clock, Lock, CheckCircle2, MapPin } from 'lucide-react'
+import { IndianRupee, Image as ImageIcon, Trash2, User, Clock, Lock, CheckCircle2, MapPin, Edit3 } from 'lucide-react'
 
 export default function VoterCard({ 
   voter, 
@@ -8,12 +8,13 @@ export default function VoterCard({
   onAssignArea,
   permissions,
   onOpenPhoto, 
+  onEditVoter,
   onToggleParty, 
   onOpenAmountModal, 
   onToggleVerified, 
   onDeleteVoter 
 }) {
-  const { canEditParty, canEditAmount, canViewAmount, canDeleteVoter, canAddVoter, isAdmin, isDistributor } = permissions
+  const { canEditParty, canEditAmount, canViewAmount, canDeleteVoter, canAddVoter, canEditVoter, isAdmin, isDistributor } = permissions
   const isPaid = Number(voter.amount) > 0
   
   // In distributor role, if amount is already paid, it cannot be edited! Only Admin can edit paid records.
@@ -196,6 +197,17 @@ export default function VoterCard({
 
           {/* Action icons */}
           <div className="flex items-center gap-1 ml-auto">
+            {canEditVoter && onEditVoter && (
+              <button
+                type="button"
+                onClick={() => onEditVoter(voter)}
+                className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-slate-100 transition"
+                title="Edit voter details (Admin)"
+              >
+                <Edit3 size={16} />
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => onOpenPhoto(voter)}
