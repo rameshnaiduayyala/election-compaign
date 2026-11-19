@@ -116,7 +116,9 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
     else if (partyFilter === 'PAID') list = list.filter(r => Number(r.amount) > 0)
 
     // Area dropdown filter
-    if (areaFilter !== 'ALL') {
+    if (areaFilter === 'UNASSIGNED') {
+      list = list.filter(r => !r.area_name && !r.area_id)
+    } else if (areaFilter !== 'ALL') {
       list = list.filter(r => 
         (r.area_name && r.area_name.toLowerCase() === areaFilter.toLowerCase()) ||
         (r.area_id && r.area_id === areaFilter)
@@ -493,6 +495,14 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
                   </option>
                 )
               })}
+              {(() => {
+                const unassignedCount = allRows.filter(r => !r.area_name && !r.area_id).length
+                return (
+                  <option value="UNASSIGNED">
+                    ⚠️ Unassigned ({unassignedCount})
+                  </option>
+                )
+              })()}
             </select>
           </div>
 
@@ -502,7 +512,7 @@ export default function VotersDirectory({ setNotice, userRole, currentUser, onOp
             title="Print voter list for this area"
           >
             <Printer size={14} />
-            <span>{areaFilter !== 'ALL' ? `Print ${areaFilter}` : 'Print Area'}</span>
+            <span>{areaFilter === 'UNASSIGNED' ? 'Print Unassigned' : areaFilter !== 'ALL' ? `Print ${areaFilter}` : 'Print Area'}</span>
           </Link>
         </div>
       </div>
