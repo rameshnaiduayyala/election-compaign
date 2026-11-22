@@ -554,14 +554,14 @@ export default function FamilyGrouping({ setNotice, userRole }) {
             <span>Include Remarks / Notes Column</span>
           </label>
 
-          <label className="flex items-center gap-1.5 cursor-pointer select-none bg-blue-50/70 border border-blue-200 px-2 py-0.5 rounded-md font-bold text-blue-700">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none bg-amber-50/80 border border-amber-300 px-2.5 py-1 rounded-md font-bold text-amber-900">
             <input
               type="checkbox"
               checked={showVoteBanner}
               onChange={(e) => setShowVoteBanner(e.target.checked)}
-              className="rounded text-blue-600"
+              className="rounded text-amber-600"
             />
-            <span>🗳️ Print Campaign Header</span>
+            <span>🍳 Print Campaign Header (Symbol: Cooker)</span>
           </label>
         </div>
 
@@ -593,20 +593,47 @@ export default function FamilyGrouping({ setNotice, userRole }) {
         
         {/* Printable Candidate Campaign Header */}
         {showVoteBanner && (
-          <div className="hidden print:flex bg-slate-900 text-white px-4 py-2 mb-3 items-center justify-between border-b-2 border-black">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🗳️</span>
+          <div className="bg-slate-900 text-white px-4 py-2.5 mb-3 rounded-xl flex items-center justify-between border-b-2 border-black print:rounded-none print:bg-black">
+            <div className="flex items-center gap-3">
+              {/* Pressure Cooker Symbol Icon Graphic */}
+              <div className="w-11 h-11 bg-white text-slate-900 rounded-xl flex flex-col items-center justify-center p-1 border-2 border-amber-400 shrink-0 print:border-black">
+                <svg viewBox="0 0 48 48" className="w-8 h-8 fill-none stroke-current stroke-2 text-slate-900" strokeLinecap="round" strokeLinejoin="round">
+                  {/* Cooker Body */}
+                  <path d="M10 20 H38 V36 C38 39 35 42 32 42 H16 C13 42 10 39 10 36 Z" fill="#f1f5f9" />
+                  {/* Cooker Lid */}
+                  <path d="M8 20 H40 V17 C40 16 38 15 36 15 H12 C10 15 8 16 8 17 Z" fill="#cbd5e1" />
+                  {/* Weight / Whistle */}
+                  <rect x="22" y="8" width="4" height="7" rx="1" fill="#475569" />
+                  <path d="M20 8 H28" />
+                  {/* Steam Vent lines */}
+                  <path d="M19 5 L17 3 M24 4 L24 2 M29 5 L31 3" stroke="#94a3b8" />
+                  {/* Cooker Main Handle */}
+                  <path d="M38 18 H46 V22 H38" fill="#1e293b" />
+                  {/* Body Sub Handle */}
+                  <path d="M10 24 H4 V28 H10" fill="#1e293b" />
+                </svg>
+              </div>
+
               <div>
-                <div className="text-sm font-black uppercase tracking-wider text-white">
-                  VOTE FOR AKULA AJAY (ఆకుల అజయ్)
+                <div className="text-base sm:text-lg font-black uppercase tracking-wider text-white flex items-center gap-2 flex-wrap">
+                  <span className="text-amber-300 print:text-white">VOTE FOR AKULA AJAY</span>
+                  <span className="text-xs sm:text-sm font-bold text-white normal-case">
+                    (ఆకుల అజయ్)
+                  </span>
+                  <span className="bg-amber-400 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded uppercase tracking-wider print:border print:border-black">
+                    గుర్తు: కుక్కర్ (SYMBOL: COOKER)
+                  </span>
                 </div>
-                <div className="text-[10px] text-slate-300 font-medium">
-                  2వ వార్డు మెంబర్ అభ్యర్థి · వెంకాయమ్మపేట, కడియపులంక
+                <div className="text-xs text-slate-300 font-semibold mt-0.5 flex items-center gap-2 flex-wrap">
+                  <span>2వ వార్డు మెంబర్ అభ్యర్థి (Ward 2 Member Candidate)</span>
+                  <span>·</span>
+                  <span>వెంకాయమ్మపేట, కడియపులంక</span>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <span className="px-2 py-0.5 bg-white text-slate-900 font-black text-xs rounded border border-black uppercase">
+
+            <div className="text-right shrink-0">
+              <span className="inline-block px-3 py-1 bg-white text-slate-950 font-black text-xs sm:text-sm rounded uppercase tracking-wider border-2 border-black">
                 WARD NO. 2
               </span>
             </div>
