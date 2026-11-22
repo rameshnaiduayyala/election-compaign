@@ -271,15 +271,23 @@ export default function FamilyGrouping({ setNotice, userRole }) {
     let singleMember = 0
     let twoToThree = 0
     let fourPlus = 0
+    let male = 0
+    let female = 0
 
     familyGroups.forEach((f) => {
       const sz = f.members.length
       if (sz === 1) singleMember++
       else if (sz === 2 || sz === 3) twoToThree++
       else if (sz >= 4) fourPlus++
+
+      f.members.forEach((m) => {
+        const g = String(m.gender || '').trim().toLowerCase()
+        if (g.startsWith('m')) male++
+        else if (g.startsWith('f')) female++
+      })
     })
 
-    return { totalFamilies, totalElectors, singleMember, twoToThree, fourPlus }
+    return { totalFamilies, totalElectors, singleMember, twoToThree, fourPlus, male, female }
   }, [familyGroups])
 
   // Manual Adjustments
@@ -566,7 +574,7 @@ export default function FamilyGrouping({ setNotice, userRole }) {
         </div>
 
         {/* Quick KPI Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 pt-4 border-t border-slate-100">
           <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3">
             <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wide">Total Houses</span>
             <div className="text-xl sm:text-2xl font-black text-blue-900 mt-0.5">{stats.totalFamilies}</div>
@@ -574,6 +582,14 @@ export default function FamilyGrouping({ setNotice, userRole }) {
           <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
             <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Total Electors</span>
             <div className="text-xl sm:text-2xl font-black text-slate-800 mt-0.5">{stats.totalElectors}</div>
+          </div>
+          <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3">
+            <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide">Male / Female</span>
+            <div className="text-lg sm:text-xl font-black text-indigo-950 mt-0.5">
+              <span>{stats.male} M</span>
+              <span className="text-slate-300 font-normal mx-1">·</span>
+              <span>{stats.female} F</span>
+            </div>
           </div>
           <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3">
             <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">4+ Member Families</span>
@@ -644,15 +660,19 @@ export default function FamilyGrouping({ setNotice, userRole }) {
         <div className="hidden print:flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-3 text-xs">
           <div>
             <div className="text-base font-black uppercase text-slate-900">
-              Ward 2 — Family Grouping Cannvassing List
+              Ward 2 — Family Grouping List
             </div>
             <div className="text-slate-600 font-medium">
               Area: <b className="text-slate-900">{selectedArea === 'ALL' ? 'All Areas' : selectedArea}</b>
             </div>
           </div>
-          <div className="text-right text-slate-600 font-medium">
-            <div>Total Houses: <b className="text-slate-900">{stats.totalFamilies}</b> · Total Electors: <b className="text-slate-900">{stats.totalElectors}</b></div>
-            <div>Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+          <div className="text-right text-slate-700 font-semibold">
+            <div>
+              Total Houses: <b className="text-slate-950 font-black">{stats.totalFamilies}</b> · Total Electors: <b className="text-slate-950 font-black">{stats.totalElectors}</b> (Male: <b>{stats.male}</b>, Female: <b>{stats.female}</b>)
+            </div>
+            <div className="text-slate-500 font-medium text-[11px] mt-0.5">
+              Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </div>
           </div>
         </div>
 
