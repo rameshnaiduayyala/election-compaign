@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, UserCheck, Printer, MapPin } from 'lucide-react'
+import { LayoutDashboard, Users, UserCheck, Printer, MapPin, Home } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { getDeviceId } from './utils/deviceBinding'
 
@@ -10,6 +10,7 @@ import Topbar from './components/layout/Topbar'
 import BottomNav from './components/layout/BottomNav'
 import Dashboard from './components/dashboard/Dashboard'
 import VotersDirectory from './components/voters/VotersDirectory'
+import FamilyGrouping from './components/voters/FamilyGrouping'
 import GroupVoters from './components/groups/GroupVoters'
 import AreasManagement from './components/areas/AreasManagement'
 import PhotoPreviewModal from './components/voters/PhotoPreviewModal'
@@ -21,6 +22,7 @@ import { usePWAInstall } from './utils/usePWAInstall'
 const BASE_NAV = [
   { id: 'dashboard', path: '/', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard },
   { id: 'voters', path: '/voters', label: 'Voters Directory', shortLabel: 'Voters', icon: Users },
+  { id: 'families', path: '/family-grouping', label: 'Family Grouping', shortLabel: 'Families', icon: Home },
   { id: 'groups', path: '/group-voters', label: 'Group & Print', shortLabel: 'Print', icon: Printer }
 ]
 
@@ -119,6 +121,7 @@ export default function App() {
   // Page title derived from current URL path
   const currentPageTitle = 
     location.pathname === '/voters' ? 'Voters Directory' :
+    location.pathname === '/family-grouping' ? 'Family Grouping' :
     location.pathname === '/group-voters' ? 'Group & Print Voters' :
     location.pathname === '/areas' ? 'Area Management' :
     location.pathname === '/users' ? 'User Management' :
@@ -185,6 +188,15 @@ export default function App() {
                         userRole={currentUserRole}
                         currentUser={currentUserName}
                         onOpenPhoto={setPhotoPreview}
+                      />
+                    } 
+                  />
+                  <Route 
+                    path="/family-grouping" 
+                    element={
+                      <FamilyGrouping 
+                        setNotice={setNotice} 
+                        userRole={currentUserRole} 
                       />
                     } 
                   />
