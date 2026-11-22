@@ -28,40 +28,56 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
   async function fetchStats() {
     setLoading(true)
     try {
-      const [
-        totalRes,
-        ysrcpRes,
-        tdpRes,
-        jspRes,
-        otherRes,
-        verifiedRes,
-        amountsRes
-      ] = await Promise.all([
-        supabase.from('voters').select('*', { count: 'exact', head: true }),
-        supabase.from('voters').select('*', { count: 'exact', head: true }).eq('is_ysrcp', true),
-        supabase.from('voters').select('*', { count: 'exact', head: true }).eq('is_tdp', true),
-        supabase.from('voters').select('*', { count: 'exact', head: true }).eq('is_jsp', true),
-        supabase.from('voters').select('*', { count: 'exact', head: true }).eq('is_other', true),
-        supabase.from('voters').select('*', { count: 'exact', head: true }).eq('is_verified', true),
-        permissions.canViewAmount
-          ? supabase.from('voters').select('amount')
-          : Promise.resolve({ data: [] })
+      // 1. Fetch voters data with fields needed for dashboard stats
+      const [votersResponse, areasResponse] = await Promise.all([
+        supabase.from('voters').select('id, area_name, area_id, gender, is_ysrcp, is_tdp, is_jsp, is_other, is_verified, amount'),
+        supabase.from('areas').select('*').order('name', { ascending: true })
       ])
 
-      const total = totalRes.count || 0
-      const ysrcp = ysrcpRes.count || 0
-      const tdp = tdpRes.count || 0
-      const jsp = jspRes.count || 0
-      const other = otherRes.count || 0
-      const verified = verifiedRes.count || 0
+      if (votersResponse.error) {
+        throw votersResponse.error
+      }
 
-      const amountRows = amountsRes.data || []
-      const totalAmount = amountRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
-      const fundedVotersCount = amountRows.filter(r => Number(r.amount) > 0).length
+      const voters = votersResponse.data || []
+      const dbAreas = (areasResponse.data && areasResponse.data.length > 0)
+        ? areasResponse.data
+        : DEFAULT_AREAS
+
+      const total = voters.length
+      let ysrcp = 0
+      let tdp = 0
+      let jsp = 0
+      let other = 0
+      let verified = 0
+      let male = 0
+      let female = 0
+      let totalAmount = 0
+      let fundedVotersCount = 0
+
+      voters.forEach(v => {
+        if (v.is_ysrcp) ysrcp++
+        if (v.is_tdp) tdp++
+        if (v.is_jsp) jsp++
+        if (v.is_other) other++
+        if (v.is_verified) verified++
+
+        const g = String(v.gender || '').trim().toLowerCase()
+        if (g.startsWith('m')) male++
+        else if (g.startsWith('f')) female++
+
+        const amt = Number(v.amount) || 0
+        if (amt > 0) {
+          totalAmount += amt
+          fundedVotersCount++
+        }
+      })
+
       const undecided = Math.max(0, total - (ysrcp + tdp + jsp + other))
 
       setStats({
         totalVoters: total,
+        male,
+        female,
         ysrcp,
         tdp,
         jsp,
@@ -71,72 +87,64 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
         totalAmount,
         fundedVotersCount
       })
-      // Fetch areas and aggregate voter stats per area
-      try {
-        const [areasResponse, votersResponse] = await Promise.all([
-          supabase.from('areas').select('*').order('name', { ascending: true }),
-          supabase.from('voters').select('id, area_name, area_id, is_ysrcp, is_tdp, is_jsp, is_other, amount')
-        ])
 
-        const dbAreas = (areasResponse.data && areasResponse.data.length > 0)
-          ? areasResponse.data
-          : DEFAULT_AREAS
+      // 2. Compute KPI metrics per area
+      const computedAreaKpis = dbAreas.map(area => {
+        const areaVoters = voters.filter(v => 
+          (v.area_name && v.area_name.toLowerCase() === area.name.toLowerCase()) ||
+          v.area_id === area.id
+        )
+        const areaTotal = areaVoters.length
+        const areaMale = areaVoters.filter(v => String(v.gender || '').trim().toLowerCase().startsWith('m')).length
+        const areaFemale = areaVoters.filter(v => String(v.gender || '').trim().toLowerCase().startsWith('f')).length
+        const aYsrcp = areaVoters.filter(v => v.is_ysrcp).length
+        const aTdp = areaVoters.filter(v => v.is_tdp).length
+        const aJsp = areaVoters.filter(v => v.is_jsp).length
+        const aOther = areaVoters.filter(v => v.is_other).length
+        const paidCount = areaVoters.filter(v => Number(v.amount) > 0).length
+        const totalPaid = areaVoters.reduce((acc, v) => acc + (Number(v.amount) || 0), 0)
 
-        const voters = votersResponse.data || []
-
-        // Compute KPI metrics per area
-        const computedAreaKpis = dbAreas.map(area => {
-          const areaVoters = voters.filter(v => 
-            (v.area_name && v.area_name.toLowerCase() === area.name.toLowerCase()) ||
-            v.area_id === area.id
-          )
-          const areaTotal = areaVoters.length
-          const ysrcp = areaVoters.filter(v => v.is_ysrcp).length
-          const tdp = areaVoters.filter(v => v.is_tdp).length
-          const jsp = areaVoters.filter(v => v.is_jsp).length
-          const other = areaVoters.filter(v => v.is_other).length
-          const paidCount = areaVoters.filter(v => Number(v.amount) > 0).length
-          const totalPaid = areaVoters.reduce((acc, v) => acc + (Number(v.amount) || 0), 0)
-
-          return {
-            id: area.id,
-            name: area.name,
-            ward_number: area.ward_number || '2',
-            description: area.description,
-            totalVoters: areaTotal,
-            ysrcp,
-            tdp,
-            jsp,
-            other,
-            paidCount,
-            totalPaid
-          }
-        })
-
-        // Also check if there are voters with no area assigned
-        const unassignedCount = voters.filter(v => !v.area_name && !v.area_id).length
-        if (unassignedCount > 0) {
-          computedAreaKpis.push({
-            id: 'unassigned',
-            name: 'Unassigned Area',
-            ward_number: '2',
-            description: 'Voters pending area assignment',
-            totalVoters: unassignedCount,
-            ysrcp: voters.filter(v => !v.area_name && !v.area_id && v.is_ysrcp).length,
-            tdp: voters.filter(v => !v.area_name && !v.area_id && v.is_tdp).length,
-            jsp: voters.filter(v => !v.area_name && !v.area_id && v.is_jsp).length,
-            other: voters.filter(v => !v.area_name && !v.area_id && v.is_other).length,
-            paidCount: voters.filter(v => !v.area_name && !v.area_id && Number(v.amount) > 0).length,
-            totalPaid: voters.filter(v => !v.area_name && !v.area_id).reduce((acc, v) => acc + (Number(v.amount) || 0), 0)
-          })
+        return {
+          id: area.id,
+          name: area.name,
+          ward_number: area.ward_number || '2',
+          description: area.description,
+          totalVoters: areaTotal,
+          male: areaMale,
+          female: areaFemale,
+          ysrcp: aYsrcp,
+          tdp: aTdp,
+          jsp: aJsp,
+          other: aOther,
+          paidCount,
+          totalPaid
         }
+      })
 
-        setAreaStats(computedAreaKpis)
-      } catch (areaErr) {
-        console.warn('Area stats calculation error:', areaErr)
+      // Check for unassigned voters
+      const unassignedVoters = voters.filter(v => !v.area_name && !v.area_id)
+      if (unassignedVoters.length > 0) {
+        computedAreaKpis.push({
+          id: 'unassigned',
+          name: 'Unassigned Area',
+          ward_number: '2',
+          description: 'Voters pending area assignment',
+          totalVoters: unassignedVoters.length,
+          male: unassignedVoters.filter(v => String(v.gender || '').trim().toLowerCase().startsWith('m')).length,
+          female: unassignedVoters.filter(v => String(v.gender || '').trim().toLowerCase().startsWith('f')).length,
+          ysrcp: unassignedVoters.filter(v => v.is_ysrcp).length,
+          tdp: unassignedVoters.filter(v => v.is_tdp).length,
+          jsp: unassignedVoters.filter(v => v.is_jsp).length,
+          other: unassignedVoters.filter(v => v.is_other).length,
+          paidCount: unassignedVoters.filter(v => Number(v.amount) > 0).length,
+          totalPaid: unassignedVoters.reduce((acc, v) => acc + (Number(v.amount) || 0), 0)
+        })
       }
+
+      setAreaStats(computedAreaKpis)
     } catch (err) {
-      setNotice(`Supabase error: ${err.message}`)
+      console.error('Dashboard load error:', err)
+      setNotice?.(`Supabase error: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -184,8 +192,8 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
         </div>
       </div>
 
-      {/* KPI Cards: total voters, isysrcp, isTDP, isJSP, other, amount (amount shown to admin/distributor only) */}
-      <div className={`grid gap-2.5 sm:gap-4 ${permissions.canViewAmount ? 'grid-cols-2 md:grid-cols-3 xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-5'}`}>
+      {/* KPI Cards: total voters, male/female, isysrcp, isTDP, isJSP, other, amount */}
+      <div className={`grid gap-2.5 sm:gap-4 ${permissions.canViewAmount ? 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-7' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6'}`}>
         <StatCard 
           label="Total Voters" 
           value={loading ? '…' : stats.totalVoters.toLocaleString('en-IN')} 
@@ -194,7 +202,15 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
         />
 
         <StatCard 
-          label="isysrcp" 
+          label="Male / Female" 
+          value={loading ? '…' : `${stats.male || 0} / ${stats.female || 0}`} 
+          hint={`M: ${Math.round(((stats.male || 0) / (stats.totalVoters || 1)) * 100)}% · F: ${Math.round(((stats.female || 0) / (stats.totalVoters || 1)) * 100)}%`}
+          icon={<Users size={18} />}
+          valueClass="text-indigo-700"
+        />
+
+        <StatCard 
+          label="YSRCP" 
           value={loading ? '…' : stats.ysrcp.toLocaleString('en-IN')} 
           hint={`${percentages.ysrcpPct}% of total`}
           icon={<ShieldCheck size={18} />}
@@ -202,7 +218,7 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
         />
 
         <StatCard 
-          label="isTDP" 
+          label="TDP" 
           value={loading ? '…' : stats.tdp.toLocaleString('en-IN')} 
           hint={`${percentages.tdpPct}% of total`}
           icon={<ShieldCheck size={18} />}
@@ -210,7 +226,7 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
         />
 
         <StatCard 
-          label="isJSP" 
+          label="JSP" 
           value={loading ? '…' : stats.jsp.toLocaleString('en-IN')} 
           hint={`${percentages.jspPct}% of total`}
           icon={<ShieldCheck size={18} />}
@@ -268,6 +284,7 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Area / Street</th>
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Ward No</th>
                 <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Total Voters</th>
+                <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Male / Female</th>
                 {permissions.canViewAmount && (
                   <th className="px-4 py-3 font-bold text-slate-700 uppercase tracking-wider text-[11px] whitespace-nowrap">Disbursement</th>
                 )}
@@ -277,13 +294,13 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={permissions.canViewAmount ? 5 : 4} className="text-center py-10 text-slate-400 font-medium">
+                  <td colSpan={permissions.canViewAmount ? 6 : 5} className="text-center py-10 text-slate-400 font-medium">
                     Loading Area-wise metrics…
                   </td>
                 </tr>
               ) : areaStats.length === 0 ? (
                 <tr>
-                  <td colSpan={permissions.canViewAmount ? 5 : 4} className="text-center py-10 text-slate-500 font-medium">
+                  <td colSpan={permissions.canViewAmount ? 6 : 5} className="text-center py-10 text-slate-500 font-medium">
                     No areas configured yet.
                   </td>
                 </tr>
@@ -303,6 +320,11 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
                         {area.totalVoters} Voters
                       </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-xs text-slate-700">
+                      <span className="font-bold text-blue-800">{area.male || 0} M</span>
+                      <span className="text-slate-300 mx-1.5">/</span>
+                      <span className="font-bold text-pink-700">{area.female || 0} F</span>
                     </td>
                     {permissions.canViewAmount && (
                       <td className="px-4 py-3 whitespace-nowrap">
