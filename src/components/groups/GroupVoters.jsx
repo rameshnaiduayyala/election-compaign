@@ -844,14 +844,28 @@ export default function GroupVoters({ userRole = 'user', setNotice }) {
             
             {/* Candidate Campaign Banner */}
             {showVoteBanner && (
-              <div className="bg-blue-900 text-white px-4 py-2.5 rounded-xl mb-4 flex items-center justify-between border-b-2 border-slate-900 print:bg-slate-950 print:text-white print:rounded-none">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xl leading-none">🗳️</span>
+              <div className="bg-slate-950 text-white px-4 py-2.5 rounded-xl mb-4 flex items-center justify-between border-b-2 border-slate-900 print:rounded-none">
+                <div className="flex items-center gap-3">
+                  {/* Pressure Cooker Symbol Icon */}
+                  <div className="w-11 h-11 bg-white text-slate-900 rounded-xl flex flex-col items-center justify-center p-1 border-2 border-amber-400 shrink-0 print:border-black">
+                    <svg viewBox="0 0 48 48" className="w-8 h-8 fill-none stroke-current stroke-2 text-slate-900" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 20 H38 V36 C38 39 35 42 32 42 H16 C13 42 10 39 10 36 Z" fill="#f1f5f9" />
+                      <path d="M8 20 H40 V17 C40 16 38 15 36 15 H12 C10 15 8 16 8 17 Z" fill="#cbd5e1" />
+                      <rect x="22" y="8" width="4" height="7" rx="1" fill="#475569" />
+                      <path d="M20 8 H28" />
+                      <path d="M19 5 L17 3 M24 4 L24 2 M29 5 L31 3" stroke="#94a3b8" />
+                      <path d="M38 18 H46 V22 H38" fill="#1e293b" />
+                      <path d="M10 24 H4 V28 H10" fill="#1e293b" />
+                    </svg>
+                  </div>
                   <div>
-                    <div className="text-sm sm:text-base font-black tracking-wider uppercase text-white flex items-center gap-2">
-                      <span>VOTE FOR AKULA AJAY</span>
-                      <span className="hidden sm:inline-block text-[11px] font-bold text-blue-300 normal-case">
-                        (ఆకుల అజయ్ కి మీ అమూల్యమైన ఓటు వేసి గెలిపించండి)
+                    <div className="text-sm sm:text-base font-black tracking-wider uppercase text-white flex items-center gap-2 flex-wrap">
+                      <span className="text-amber-300 print:text-white">VOTE FOR AKULA AJAY</span>
+                      <span className="text-xs sm:text-sm font-bold text-white normal-case">
+                        (ఆకుల అజయ్)
+                      </span>
+                      <span className="bg-amber-400 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded uppercase tracking-wider print:border print:border-black">
+                        గుర్తు: కుక్కర్ (SYMBOL: COOKER)
                       </span>
                     </div>
                     <div className="text-[10px] text-slate-300 font-medium leading-tight mt-0.5">

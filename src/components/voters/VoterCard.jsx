@@ -33,13 +33,20 @@ export default function VoterCard({
 
       {/* Top Bar: Serial Number & EPIC Voter ID & Status */}
       <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="bg-blue-50 text-blue-700 font-bold text-[11px] px-2 py-0.5 rounded-md border border-blue-200">
             SL #{voter.serial_number}
           </span>
           <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
             {voter.voter_id || 'ID —'}
           </span>
+          {/* Prominent PAID badge in top bar visible to all distributor & admin roles */}
+          {isPaid && canViewAmount && (
+            <span className="bg-emerald-600 text-white font-black text-[11px] px-2 py-0.5 rounded-md shadow-2xs flex items-center gap-1">
+              <CheckCircle2 size={12} className="text-white" />
+              <span>PAID: {formatRupee(voter.amount)}</span>
+            </span>
+          )}
         </div>
 
         <button
@@ -158,23 +165,23 @@ export default function VoterCard({
                   onClick={() => onOpenAmountModal(voter)}
                   className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 transition ${
                     isPaid 
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold hover:bg-emerald-100' 
+                      ? 'bg-emerald-600 border-emerald-700 text-white font-bold hover:bg-emerald-700 shadow-2xs' 
                       : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-blue-400'
                   }`}
                   title={isPaid ? "Admin: Click to edit paid disbursement" : "Click to add disbursement amount"}
                 >
-                  <IndianRupee size={13} className={isPaid ? 'text-emerald-600' : 'text-slate-400'} />
-                  <span>{isPaid ? formatRupee(voter.amount) : '+ Add Amount'}</span>
+                  <IndianRupee size={13} className={isPaid ? 'text-white' : 'text-slate-400'} />
+                  <span>{isPaid ? `Paid: ${formatRupee(voter.amount)}` : '+ Add Amount'}</span>
                 </button>
               ) : (
                 /* Distributor when amount is already paid: strictly locked and not editable */
                 <span 
-                  className="text-xs font-bold inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-2xs cursor-not-allowed select-none"
+                  className="text-xs font-bold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 border border-emerald-700 text-white shadow-2xs select-none"
                   title="Locked: Paid amounts cannot be edited by Distributor (Only Admin can edit)"
                 >
-                  <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                  <span>{formatRupee(voter.amount)}</span>
-                  <Lock size={11} className="text-emerald-700 ml-0.5 shrink-0" />
+                  <CheckCircle2 size={13} className="text-white shrink-0" />
+                  <span>Paid: {formatRupee(voter.amount)}</span>
+                  <Lock size={12} className="text-emerald-100 ml-1 shrink-0" />
                 </span>
               )}
 
