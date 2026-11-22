@@ -252,9 +252,8 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
         )}
       </div>
 
-      {/* Visual Party Share Progress Bar */}
-      <PartyProgressBar stats={stats} percentages={percentages} />
 
+      
       {/* Area-Wise Summary Table Section */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
@@ -365,6 +364,10 @@ export default function Dashboard({ userRole = 'user', onNavigate, setNotice }) 
           </table>
         </div>
       </div>
+
+      {/* Visual Party Share Progress Bar */}
+      <PartyProgressBar stats={stats} percentages={percentages} />
+
     </div>
   )
 }
