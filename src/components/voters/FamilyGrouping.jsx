@@ -767,8 +767,6 @@ export default function FamilyGrouping({ setNotice, userRole }) {
                         <th className="py-1.5 px-2.5 whitespace-nowrap w-28">EPIC ID</th>
                         <th className="py-1.5 px-3">Elector Name (తెలుగు / English)</th>
                         <th className="py-1.5 px-3">Relative Name</th>
-                        <th className="py-1.5 px-2 text-center w-16">Age/Sex</th>
-                        <th className="py-1.5 px-2 text-center w-16">Party</th>
                         {showNotesCol && (
                           <th className="py-1.5 px-3 text-center min-w-[100px]">Remarks / Notes</th>
                         )}
@@ -822,30 +820,6 @@ export default function FamilyGrouping({ setNotice, userRole }) {
                             <td className="py-2 px-3 text-slate-700">
                               <span className="font-semibold">{member.relative_name || '—'}</span>
                               <span className="text-[10px] text-slate-500 block">({member.relation_type || 'Relation'})</span>
-                            </td>
-
-                            {/* Age & Sex */}
-                            <td className="py-2 px-2 text-center whitespace-nowrap font-medium text-slate-700">
-                              {member.age || '—'} / {member.gender ? member.gender.charAt(0) : '—'}
-                            </td>
-
-                            {/* Party */}
-                            <td className="py-2 px-2 text-center font-bold text-[10px]">
-                              {member.is_ysrcp && (
-                                <span className="text-blue-700">YSRCP</span>
-                              )}
-                              {member.is_tdp && (
-                                <span className="text-amber-700">TDP</span>
-                              )}
-                              {member.is_jsp && (
-                                <span className="text-red-700">JSP</span>
-                              )}
-                              {member.is_other && (
-                                <span className="text-slate-700">OTH</span>
-                              )}
-                              {!member.is_ysrcp && !member.is_tdp && !member.is_jsp && !member.is_other && (
-                                <span className="text-slate-400">—</span>
-                              )}
                             </td>
 
                             {/* Remarks / Notes Column for pen writing */}
