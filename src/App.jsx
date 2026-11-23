@@ -24,7 +24,7 @@ const BASE_NAV = [
   { id: 'dashboard', path: '/', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard },
   { id: 'voters', path: '/voters', label: 'Voters Directory', shortLabel: 'Voters', icon: Users },
   { id: 'families', path: '/family-grouping', label: 'Family Grouping', shortLabel: 'Families', icon: Home },
-  { id: 'table-print', path: '/table-print', label: 'Serial Table Print', shortLabel: 'Table Print', icon: FileSpreadsheet },
+  { id: 'table-print', path: '/table-print', label: 'Elector Slips Table', shortLabel: 'Slips Table', icon: FileSpreadsheet },
   { id: 'groups', path: '/group-voters', label: 'Group & Print', shortLabel: 'Print', icon: Printer }
 ]
 
@@ -124,7 +124,7 @@ export default function App() {
   const currentPageTitle = 
     location.pathname === '/voters' ? 'Voters Directory' :
     location.pathname === '/family-grouping' ? 'Family Grouping' :
-    location.pathname === '/table-print' ? 'Serial Table Print' :
+    location.pathname === '/table-print' ? 'WARD 2 — ELECTOR SLIPS TABLE' :
     location.pathname === '/group-voters' ? 'Group & Print Voters' :
     location.pathname === '/areas' ? 'Area Management' :
     location.pathname === '/users' ? 'User Management' :

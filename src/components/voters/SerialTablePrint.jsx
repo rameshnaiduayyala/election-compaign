@@ -165,8 +165,12 @@ export default function SerialTablePrint({ setNotice, userRole }) {
       return
     }
 
-    const groupNumber = tableGroups.length + 1
-    const finalTitle = customTitle.trim() || `Group ${groupNumber} (Serials: ${requestedSerials.slice(0, 4).join(', ')}${requestedSerials.length > 4 ? '...' : ''})`
+    const firstVoter = matchedVoters[0]
+    const peddaName = firstVoter?.voter_name_telugu 
+      ? `${firstVoter.voter_name_telugu}${firstVoter.voter_name_english ? ` (${firstVoter.voter_name_english})` : ''}`
+      : (firstVoter?.voter_name_english || `Sl #${firstVoter?.serial_number}`)
+    
+    const finalTitle = customTitle.trim() || peddaName
 
     const newGroup = {
       id: `group_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -245,6 +249,18 @@ export default function SerialTablePrint({ setNotice, userRole }) {
     setTempGroupTitle('')
   }
 
+  // Get display title for a group (automatically defaults to just the first serial number's name)
+  const getGroupTitle = (group) => {
+    if (group.title && !group.title.startsWith('Group ') && !group.title.includes('కుటుంబ పెద్ద')) {
+      return group.title
+    }
+    const firstVoter = group.voters?.[0]
+    if (!firstVoter) return group.title || 'Family'
+    return firstVoter.voter_name_telugu 
+      ? `${firstVoter.voter_name_telugu}${firstVoter.voter_name_english ? ` (${firstVoter.voter_name_english})` : ''}`
+      : (firstVoter.voter_name_english || `Sl #${firstVoter.serial_number}`)
+  }
+
   // Clear all groups
   const handleClearAll = () => {
     if (window.confirm('Are you sure you want to clear the entire table?')) {
@@ -285,10 +301,10 @@ export default function SerialTablePrint({ setNotice, userRole }) {
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               <FileSpreadsheet className="w-4 h-4" />
-              <span>Ward 2 · Custom Serial Table Print</span>
+              <span>Ward 2 · Venkayammapeta</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              Serial Number Table Print
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 uppercase">
+              WARD 2 — ELECTOR SLIPS TABLE
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               Enter serial numbers (e.g. <b>221, 882, 228</b>) and press <b>Enter</b> to add a group. Add another set of numbers for the next group, and print clean tabular slips!
@@ -356,13 +372,13 @@ export default function SerialTablePrint({ setNotice, userRole }) {
             {/* Optional Group Title */}
             <div className="md:col-span-3">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Group Title / House (Optional)
+                Group Title / Name (Optional)
               </label>
               <input
                 type="text"
                 value={customTitle}
                 onChange={(e) => setCustomTitle(e.target.value)}
-                placeholder={`e.g. Group ${tableGroups.length + 1} / Family 1`}
+                placeholder="Default: మొదటి SL ఓటరు పేరు"
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
               />
             </div>
@@ -516,7 +532,7 @@ export default function SerialTablePrint({ setNotice, userRole }) {
         <div className="hidden print:flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-3 text-xs">
           <div>
             <div className="text-base font-black uppercase text-slate-900">
-              Ward 2 — Elector Slips Table
+              WARD 2 — ELECTOR SLIPS TABLE
             </div>
             <div className="text-slate-600 font-medium">
               Voter Table Grouping Roster
@@ -609,15 +625,15 @@ export default function SerialTablePrint({ setNotice, userRole }) {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono text-sm sm:text-base font-black text-slate-900">
-                          {group.title}
+                          {getGroupTitle(group)}
                         </span>
                         <button
                           type="button"
                           onClick={() => {
                             setEditingGroupId(group.id)
-                            setTempGroupTitle(group.title)
+                            setTempGroupTitle(getGroupTitle(group))
                           }}
                           className="p-1 text-slate-400 hover:text-blue-600 rounded transition print:hidden"
                           title="Rename group title"
@@ -698,8 +714,11 @@ export default function SerialTablePrint({ setNotice, userRole }) {
 
                           {/* Voter Name */}
                           <td className="py-2 px-3">
-                            <div className="font-black text-slate-900 text-sm leading-tight">
-                              {member.voter_name_telugu || '—'}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-black text-slate-900 text-sm leading-tight">
+                                {member.voter_name_telugu || '—'}
+                              </span>
+                              
                             </div>
                             <div className="text-slate-600 text-[11px] font-semibold mt-0.5">
                               {member.voter_name_english || '—'}
